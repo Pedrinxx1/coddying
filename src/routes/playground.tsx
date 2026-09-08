@@ -543,10 +543,10 @@ function Playground() {
                 title="Pré-visualização"
                 sandbox="allow-scripts allow-modals"
                 srcDoc={srcDoc}
-                className="h-[60vh] min-h-[380px] w-full bg-white"
+                className="h-[60vh] min-h-[280px] w-full bg-white"
               />
             ) : (
-              <div className="max-h-[60vh] min-h-[380px] overflow-auto px-4 py-3">
+              <div className="max-h-[60vh] min-h-[280px] overflow-auto px-4 py-3 sm:min-h-[380px]">
                 {running && <p className="text-sm text-muted-foreground">Executando…</p>}
                 {!running && !result && (
                   <p className="text-sm text-muted-foreground">
