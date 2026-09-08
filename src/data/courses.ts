@@ -1,3 +1,5 @@
+import { extraModules } from "./courseModules";
+
 export type Level = "Iniciante" | "Intermediário" | "Avançado";
 
 export type Course = {
@@ -21,7 +23,7 @@ export const levelEmoji: Record<Level, string> = {
   Avançado: "🔥",
 };
 
-export const courses: Course[] = [
+const baseCourses: Course[] = [
   {
     slug: "logica-de-programacao",
     title: "Lógica de Programação",
@@ -590,10 +592,13 @@ export const courses: Course[] = [
       },
     ],
   },
-].map((c) => ({
+];
+
+export const courses: Course[] = baseCourses.map((c) => ({
   ...c,
   modules: [...c.modules, ...(extraModules[c.slug] ?? [])],
 }));
+
 
 export function getCourse(slug: string) {
   return courses.find((c) => c.slug === slug);
