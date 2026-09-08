@@ -140,7 +140,7 @@ function Painel() {
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat icon={<Zap className="h-4 w-4 text-cyan" />} label="XP total" value={profile?.xp ?? 0} />
-          <Stat icon={<Flame className="h-4 w-4 text-warn" />} label="Sequência" value={`${profile?.streak ?? 0} dias`} />
+          <Stat icon={<Flame className="h-4 w-4 text-warn" />} label="Sequência" value={`${profile?.streak ?? 0} ${(profile?.streak ?? 0) === 1 ? "dia" : "dias"}`} />
           <Stat icon={<Trophy className="h-4 w-4 text-success" />} label="Lições concluídas" value={totalDone} />
           <Stat icon={<Code2 className="h-4 w-4 text-violet" />} label="Códigos salvos" value={snippets.length} />
         </div>
