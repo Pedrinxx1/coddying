@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { History, Loader2, Play, RotateCcw, Save, Terminal, Trash2 } from "lucide-react";
 import { listRuntimes, runCode, type RunResult } from "@/lib/run-code.functions";
+import { diffLinhas, resumoDiff } from "@/lib/diff";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
@@ -231,6 +232,7 @@ function Playground() {
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [versions, setVersions] = useState<CodeVersion[]>([]);
+  const [comparando, setComparando] = useState<CodeVersion | null>(null);
   const { user } = useSession();
   const { snippet } = Route.useSearch();
 
@@ -573,11 +575,11 @@ function Playground() {
           </div>
         </div>
 
-        <section className="card-soft mt-8 p-6">
+        <section className="card-soft mt-8 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-cyan" />
-              <h2 className="font-display text-lg font-bold">Histórico e versões</h2>
+              <History className="h-4 w-4 shrink-0 text-cyan" />
+              <h2 className="font-display text-base font-bold sm:text-lg">Histórico e versões</h2>
             </div>
             <button
               onClick={() => saveVersion("manual")}
@@ -587,8 +589,8 @@ function Playground() {
             </button>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Guardamos as 20 últimas versões deste navegador automaticamente a cada execução. Restaure
-            quando quebrar algo.
+            Guardamos as 20 últimas versões deste navegador automaticamente a cada execução. Dá para comparar com o
+            código atual antes de reverter.
           </p>
 
           {versions.length === 0 ? (
@@ -597,33 +599,100 @@ function Playground() {
             </p>
           ) : (
             <ul className="mt-5 space-y-2">
-              {versions.map((v) => (
-                <li key={v.id} className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-mono text-xs text-foreground">{v.filename}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {horario(v.ts)} • {v.language} • {v.motivo} • {v.code.split("\n").length} linhas
-                    </p>
+              {versions.map((v, i) => (
+                <li key={v.id} className="rounded-xl border border-border px-4 py-3">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-xs text-foreground">
+                        #{versions.length - i} · {v.filename}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {horario(v.ts)} • {v.language} • {v.motivo} • {v.code.split("\n").length} linhas
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        onClick={() => setComparando(comparando?.id === v.id ? null : v)}
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                      >
+                        {comparando?.id === v.id ? "Fechar" : "Comparar"}
+                      </button>
+                      <button
+                        onClick={() => restoreVersion(v)}
+                        className="rounded-lg border border-cyan/50 px-3 py-1.5 text-xs font-semibold text-cyan"
+                      >
+                        Reverter
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (comparando?.id === v.id) setComparando(null);
+                          removeVersion(v.id);
+                        }}
+                        aria-label="Apagar versão"
+                        className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => restoreVersion(v)}
-                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                  >
-                    Restaurar
-                  </button>
-                  <button
-                    onClick={() => removeVersion(v.id)}
-                    aria-label="Apagar versão"
-                    className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+
+                  {comparando?.id === v.id && <Comparacao versao={v} atual={code} aoReverter={() => restoreVersion(v)} />}
                 </li>
               ))}
             </ul>
           )}
         </section>
       </main>
+    </div>
+  );
+}
+
+function Comparacao({
+  versao,
+  atual,
+  aoReverter,
+}: {
+  versao: CodeVersion;
+  atual: string;
+  aoReverter: () => void;
+}) {
+  const linhas = useMemo(() => diffLinhas(versao.code, atual), [versao.code, atual]);
+  const { adicionadas, removidas } = useMemo(() => resumoDiff(linhas), [linhas]);
+
+  return (
+    <div className="mt-3 border-t border-border pt-3">
+      <p className="text-xs text-muted-foreground">
+        Comparando a versão de {horario(versao.ts)} com o que está no editor agora:{" "}
+        <span className="text-success">+{adicionadas}</span> /{" "}
+        <span className="text-destructive">-{removidas}</span> linhas.
+      </p>
+      {adicionadas + removidas === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">Nada mudou — o código é idêntico.</p>
+      ) : (
+        <pre className="mt-2 max-h-72 overflow-auto rounded-lg bg-surface/60 p-3 font-mono text-[12px] leading-5">
+          {linhas.map((ln, i) => (
+            <div
+              key={i}
+              className={
+                ln.tipo === "add"
+                  ? "text-success"
+                  : ln.tipo === "del"
+                    ? "text-destructive"
+                    : "text-muted-foreground"
+              }
+            >
+              {ln.tipo === "add" ? "+ " : ln.tipo === "del" ? "- " : "  "}
+              {ln.texto || " "}
+            </div>
+          ))}
+        </pre>
+      )}
+      <button
+        onClick={aoReverter}
+        className="bg-brand mt-3 rounded-lg px-3 py-1.5 text-xs font-bold text-primary-foreground"
+      >
+        Reverter para esta versão
+      </button>
     </div>
   );
 }
