@@ -182,16 +182,18 @@ function Painel() {
                 const done = byCourse.get(c.slug) ?? 0;
                 const total = countLessons(c);
                 const pct = Math.round((done / total) * 100);
+                const prox = proximaLicao(c.slug);
                 return (
-                  <Link
-                    key={c.slug}
-                    to="/cursos/$slug"
-                    params={{ slug: c.slug }}
-                    className="card-soft p-5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-display font-bold">{c.title}</span>
-                      <span className="text-xs text-muted-foreground">
+                  <div key={c.slug} className="card-soft p-5">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                      <Link
+                        to="/cursos/$slug"
+                        params={{ slug: c.slug }}
+                        className="truncate font-display font-bold hover:text-cyan"
+                      >
+                        {c.title}
+                      </Link>
+                      <span className="shrink-0 text-xs text-muted-foreground">
                         {levelEmoji[c.level]} {c.level}
                       </span>
                     </div>
@@ -201,7 +203,20 @@ function Painel() {
                     <p className="mt-2 text-xs text-muted-foreground">
                       {done} de {total} lições • {pct}%
                     </p>
-                  </Link>
+                    {prox ? (
+                      <Link
+                        to="/cursos/$slug/licao/$m/$l"
+                        params={{ slug: c.slug, m: String(prox.m), l: String(prox.l) }}
+                        className="mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border border-cyan/50 px-3 py-2 text-xs font-bold text-cyan"
+                      >
+                        <span className="truncate">Continuar: {prox.titulo}</span>
+                      </Link>
+                    ) : (
+                      <p className="mt-4 inline-flex rounded-xl border border-success/50 px-3 py-2 text-xs font-bold text-success">
+                        Curso concluído 🎉
+                      </p>
+                    )}
+                  </div>
                 );
               })}
             </div>
