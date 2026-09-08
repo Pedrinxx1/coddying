@@ -2,6 +2,7 @@
 // Cada tópico traz explicação profunda, exemplo comentado, erros comuns,
 // perguntas de quiz e (quando faz sentido) um exercício com saída esperada.
 import { extraTopics } from "./lessonTopicsExtra";
+import { pythonTopics } from "./lessonTopicsPython";
 
 export type QuizQuestion = {
   q: string;
@@ -1396,13 +1397,14 @@ echo "6. Issues abertas com o que você faria a seguir"`,
   },
 ];
 
-export const topics: Topic[] = [...baseTopics, ...extraTopics];
+export const topics: Topic[] = [...pythonTopics, ...extraTopics, ...baseTopics];
 
 const stripAccents = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 export function findTopic(lessonTitle: string, moduleTitle: string, lang: string): Topic {
-  const hay = stripAccents(`${lessonTitle} ${moduleTitle}`);
+  const normalizedLesson = stripAccents(lessonTitle);
+  const normalizedModule = stripAccents(moduleTitle);
   let best: { t: Topic; score: number } | null = null;
 
   for (const t of topics) {
@@ -1410,8 +1412,9 @@ export function findTopic(lessonTitle: string, moduleTitle: string, lang: string
     let score = 0;
     for (const k of t.keys) {
       const key = stripAccents(k);
-      if (stripAccents(lessonTitle).includes(key)) score += key.length * 2;
-      else if (hay.includes(key)) score += key.length;
+      if (normalizedLesson === key) score += 1000 + key.length;
+      else if (normalizedLesson.includes(key)) score += 100 + key.length * 3;
+      else if (normalizedModule.includes(key)) score += key.length;
     }
     if (score > 0 && (!best || score > best.score)) best = { t, score };
   }
