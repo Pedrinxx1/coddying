@@ -192,13 +192,21 @@ const presets: Preset[] = [
     sample: `cat("Olá, Codding!\\n")\nprint(summary(c(1,2,3,4,5)))`,
   },
   {
-    id: "zig",
-    label: "Zig",
-    ext: "zig",
-    piston: "zig",
-    sample: `const std = @import("std");\n\npub fn main() !void {\n    try std.io.getStdOut().writer().print("Olá, Codding!\\n", .{});\n}`,
+    id: "kotlin",
+    label: "Kotlin",
+    ext: "kt",
+    piston: "kotlin",
+    sample: `fun main() {\n    println("Olá, Codding!")\n}`,
+  },
+  {
+    id: "dart",
+    label: "Dart",
+    ext: "dart",
+    piston: "dart",
+    sample: `void main() {\n  print('Olá, Codding!');\n}`,
   },
 ];
+
 
 
 function Playground() {
