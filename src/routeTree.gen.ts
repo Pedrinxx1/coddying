@@ -16,7 +16,7 @@ import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as CursosIndexRouteImport } from './routes/cursos.index'
 import { Route as CursosSlugRouteImport } from './routes/cursos.$slug'
-import { Route as CursosSlugLicaoMLRouteImport } from './routes/cursos.$slug.licao.$m.$l'
+import { Route as CursosSlugLicaoMLRouteImport } from './routes/cursos.$slug_.licao.$m.$l'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -53,9 +53,9 @@ const CursosSlugRoute = CursosSlugRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CursosSlugLicaoMLRoute = CursosSlugLicaoMLRouteImport.update({
-  id: '/licao/$m/$l',
-  path: '/licao/$m/$l',
-  getParentRoute: () => CursosSlugRoute,
+  id: '/cursos/$slug_/licao/$m/$l',
+  path: '/cursos/$slug/licao/$m/$l',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -63,7 +63,7 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/playground': typeof PlaygroundRoute
   '/painel': typeof AuthenticatedPainelRoute
-  '/cursos/$slug': typeof CursosSlugRouteWithChildren
+  '/cursos/$slug': typeof CursosSlugRoute
   '/cursos/': typeof CursosIndexRoute
   '/cursos/$slug/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
@@ -72,7 +72,7 @@ export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/playground': typeof PlaygroundRoute
   '/painel': typeof AuthenticatedPainelRoute
-  '/cursos/$slug': typeof CursosSlugRouteWithChildren
+  '/cursos/$slug': typeof CursosSlugRoute
   '/cursos': typeof CursosIndexRoute
   '/cursos/$slug/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
@@ -83,9 +83,9 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/playground': typeof PlaygroundRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
-  '/cursos/$slug': typeof CursosSlugRouteWithChildren
+  '/cursos/$slug': typeof CursosSlugRoute
   '/cursos/': typeof CursosIndexRoute
-  '/cursos/$slug/licao/$m/$l': typeof CursosSlugLicaoMLRoute
+  '/cursos/$slug_/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -115,7 +115,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/cursos/$slug'
     | '/cursos/'
-    | '/cursos/$slug/licao/$m/$l'
+    | '/cursos/$slug_/licao/$m/$l'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -123,8 +123,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   EntrarRoute: typeof EntrarRoute
   PlaygroundRoute: typeof PlaygroundRoute
-  CursosSlugRoute: typeof CursosSlugRouteWithChildren
+  CursosSlugRoute: typeof CursosSlugRoute
   CursosIndexRoute: typeof CursosIndexRoute
+  CursosSlugLicaoMLRoute: typeof CursosSlugLicaoMLRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -178,12 +179,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CursosSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cursos/$slug/licao/$m/$l': {
-      id: '/cursos/$slug/licao/$m/$l'
-      path: '/licao/$m/$l'
+    '/cursos/$slug_/licao/$m/$l': {
+      id: '/cursos/$slug_/licao/$m/$l'
+      path: '/cursos/$slug/licao/$m/$l'
       fullPath: '/cursos/$slug/licao/$m/$l'
       preLoaderRoute: typeof CursosSlugLicaoMLRouteImport
-      parentRoute: typeof CursosSlugRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -199,25 +200,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface CursosSlugRouteChildren {
-  CursosSlugLicaoMLRoute: typeof CursosSlugLicaoMLRoute
-}
-
-const CursosSlugRouteChildren: CursosSlugRouteChildren = {
-  CursosSlugLicaoMLRoute: CursosSlugLicaoMLRoute,
-}
-
-const CursosSlugRouteWithChildren = CursosSlugRoute._addFileChildren(
-  CursosSlugRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   EntrarRoute: EntrarRoute,
   PlaygroundRoute: PlaygroundRoute,
-  CursosSlugRoute: CursosSlugRouteWithChildren,
+  CursosSlugRoute: CursosSlugRoute,
   CursosIndexRoute: CursosIndexRoute,
+  CursosSlugLicaoMLRoute: CursosSlugLicaoMLRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
