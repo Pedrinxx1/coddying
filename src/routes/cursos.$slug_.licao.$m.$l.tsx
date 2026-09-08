@@ -6,18 +6,23 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
+  ChevronDown,
   CircleDashed,
   Lightbulb,
+  ListChecks,
   Loader2,
   Play,
+  PlayCircle,
   Send,
+  ShieldCheck,
   Sparkles,
   XCircle,
 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getCourse } from "@/data/courses";
+import { countLessons, getCourse } from "@/data/courses";
 import { lessonContent } from "@/data/lessonContent";
 import { askTutor, tutorSuggestions } from "@/lib/tutor";
+import { videoAulas } from "@/lib/videoAulas";
 import { runCode } from "@/lib/run-code.functions";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +41,7 @@ export const Route = createFileRoute("/cursos/$slug_/licao/$m/$l")({
   head: ({ loaderData }) => {
     if (!loaderData) return { meta: [{ title: "Lição não encontrada | Codding" }] };
     const title = `${loaderData.lesson} — ${loaderData.course.title} | Codding`;
-    const desc = `Lição interativa sobre ${loaderData.lesson.toLowerCase()} no curso de ${loaderData.course.title}, com exemplo comentado, quiz e exercício corrigido automaticamente.`;
+    const desc = `Lição interativa sobre ${loaderData.lesson.toLowerCase()} no curso de ${loaderData.course.title}, com videoaula, exemplo comentado, quiz e exercício corrigido automaticamente.`;
     return {
       meta: [
         { title },
@@ -52,7 +57,7 @@ export const Route = createFileRoute("/cursos/$slug_/licao/$m/$l")({
   notFoundComponent: () => (
     <div className="grid min-h-screen place-items-center bg-background px-6 text-center">
       <div>
-        <h1 className="font-display text-3xl font-extrabold">Lição não encontrada</h1>
+        <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Lição não encontrada</h1>
         <Link to="/cursos" className="bg-brand mt-6 inline-flex rounded-xl px-5 py-2.5 font-bold text-primary-foreground">
           Ver cursos
         </Link>
@@ -66,6 +71,7 @@ function LessonPage() {
   const navigate = useNavigate();
   const { user } = useSession();
   const content = useMemo(() => lessonContent(course, mod.title, lesson), [course, mod, lesson]);
+  const videos = useMemo(() => videoAulas(course.title, mod.title, lesson), [course, mod, lesson]);
   const ex = content.exercise;
 
   const [code, setCode] = useState(ex.starter);
@@ -74,10 +80,14 @@ function LessonPage() {
   const [status, setStatus] = useState<"idle" | "ok" | "fail">("idle");
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+  const [feitas, setFeitas] = useState<Set<string>>(new Set());
   const [unlocked, setUnlocked] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [chat, setChat] = useState<{ role: "user" | "tutor"; text: string; source?: string }[]>([]);
+  const [chat, setChat] = useState<
+    { role: "user" | "tutor"; text: string; source?: string; verificado?: boolean }[]
+  >([]);
   const [pergunta, setPergunta] = useState("");
+  const [indice, setIndice] = useState(false);
   const run = useServerFn(runCode);
 
   useEffect(() => {
@@ -87,23 +97,25 @@ function LessonPage() {
     setSrcDoc("");
     setAnswers({});
     setChat([]);
+    setIndice(false);
   }, [ex]);
 
   useEffect(() => {
     if (!user) {
       setDone(false);
+      setFeitas(new Set());
       return;
     }
     let alive = true;
     void (async () => {
       const { data } = await supabase
         .from("lesson_progress")
-        .select("id")
-        .eq("course_slug", course.slug)
-        .eq("module_index", m)
-        .eq("lesson_index", l)
-        .maybeSingle();
-      if (alive) setDone(Boolean(data));
+        .select("module_index, lesson_index")
+        .eq("course_slug", course.slug);
+      if (!alive) return;
+      const set = new Set((data ?? []).map((d) => `${d.module_index}-${d.lesson_index}`));
+      setFeitas(set);
+      setDone(set.has(`${m}-${l}`));
     })();
     return () => {
       alive = false;
@@ -111,14 +123,29 @@ function LessonPage() {
   }, [user, course.slug, m, l]);
 
   const isWeb = ex.expected === null;
+  const total = countLessons(course);
+  const pct = total ? Math.round((feitas.size / total) * 100) : 0;
+  const erradas = content.quiz
+    .map((q, i) => ({ q, i, escolhida: answers[i] }))
+    .filter((r) => r.escolhida !== undefined && r.escolhida !== r.q.answer);
   const acertos = content.quiz.filter((q, i) => answers[i] === q.answer).length;
   const respondidas = Object.keys(answers).length;
+  const quizCompleto = respondidas === content.quiz.length && content.quiz.length > 0;
 
   const next = useMemo(() => {
     if (l + 1 < mod.lessons.length) return { m, l: l + 1 };
     if (m + 1 < course.modules.length) return { m: m + 1, l: 0 };
     return null;
   }, [course, mod, m, l]);
+
+  const prev = useMemo(() => {
+    if (l - 1 >= 0) return { m, l: l - 1 };
+    if (m - 1 >= 0) {
+      const anterior = course.modules[m - 1];
+      if (anterior) return { m: m - 1, l: anterior.lessons.length - 1 };
+    }
+    return null;
+  }, [course, m, l]);
 
   async function check() {
     if (isWeb) {
@@ -146,58 +173,143 @@ function LessonPage() {
       navigate({ to: "/entrar", search: {} });
       return;
     }
+    const chave = `${m}-${l}`;
     if (done) {
       await uncompleteLesson(user.id, course.slug, m, l);
       setDone(false);
       setUnlocked([]);
+      setFeitas((s) => {
+        const n = new Set(s);
+        n.delete(chave);
+        return n;
+      });
       return;
     }
     const { newAchievements } = await completeLesson(user.id, course.slug, m, l);
     setDone(true);
     setUnlocked(newAchievements);
+    setFeitas((s) => new Set(s).add(chave));
   }
 
   function perguntar(texto?: string) {
     const q = (texto ?? pergunta).trim();
     if (!q) return;
     const a = askTutor(q, content, lesson);
-    setChat((c) => [...c, { role: "user", text: q }, { role: "tutor", text: a.text, source: a.source }]);
+    setChat((c) => [
+      ...c,
+      { role: "user", text: q },
+      { role: "tutor", text: a.text, source: a.source, verificado: a.verificado },
+    ]);
     setPergunta("");
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24 lg:pb-0">
       <SiteHeader crumb={course.title} />
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <Link
-          to="/cursos/$slug"
-          params={{ slug: course.slug }}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> {course.title}
-        </Link>
+
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <Link
+            to="/cursos/$slug"
+            params={{ slug: course.slug }}
+            className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" /> <span className="truncate">{course.title}</span>
+          </Link>
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {feitas.size}/{total} lições
+          </span>
+        </div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
+          <div className="bg-brand h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
+        </div>
 
         <p className="mt-6 text-xs font-semibold tracking-wide text-cyan uppercase">
           Módulo {m + 1} • {mod.title}
         </p>
-        <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{lesson}</h1>
+        <h1 className="mt-2 font-display text-2xl leading-tight font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
+          {lesson}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">Tema: {content.topic.title}</p>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_1fr]">
-          <article className="space-y-6">
+        {/* Índice do módulo — navegação rápida entre lições */}
+        <div className="card-soft mt-5 overflow-hidden p-0">
+          <button
+            onClick={() => setIndice((v) => !v)}
+            className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold sm:px-5"
+          >
+            <ListChecks className="h-4 w-4 shrink-0 text-cyan" />
+            <span className="min-w-0 flex-1 truncate">Lições deste módulo ({mod.lessons.length})</span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${indice ? "rotate-180" : ""}`} />
+          </button>
+          {indice && (
+            <ul className="border-t border-border px-4 py-2 sm:px-5">
+              {mod.lessons.map((li, j) => (
+                <li key={li} className="border-b border-border/50 last:border-0">
+                  <Link
+                    to="/cursos/$slug/licao/$m/$l"
+                    params={{ slug: course.slug, m: String(m), l: String(j) }}
+                    onClick={() => setIndice(false)}
+                    className={`flex items-center gap-3 py-2.5 text-sm ${
+                      j === l ? "font-bold text-cyan" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {feitas.has(`${m}-${j}`) ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+                    ) : (
+                      <CircleDashed className="h-4 w-4 shrink-0" />
+                    )}
+                    <span className="min-w-0 flex-1">{li}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:gap-8">
+          <article className="min-w-0 space-y-6">
             {content.sections.map((s) => (
-              <section key={s.title} className="card-soft p-6">
-                <h2 className="font-display text-lg font-bold">{s.title}</h2>
+              <section key={s.title} className="card-soft p-5 sm:p-6">
+                <h2 className="font-display text-base font-bold sm:text-lg">{s.title}</h2>
                 <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{s.body}</p>
               </section>
             ))}
 
+            <section className="card-soft p-5 sm:p-6">
+              <div className="flex items-center gap-2">
+                <PlayCircle className="h-4 w-4 shrink-0 text-violet" />
+                <h2 className="font-display text-base font-bold sm:text-lg">Videoaulas sobre este tema</h2>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Se você aprende melhor assistindo, abrimos uma seleção de aulas em vídeo em português sobre
+                exatamente este assunto.
+              </p>
+              <div className="mt-4 grid gap-3">
+                {videos.map((v) => (
+                  <a
+                    key={v.titulo}
+                    href={v.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-3 rounded-xl border border-border px-4 py-3 transition-colors hover:border-cyan/50"
+                  >
+                    <PlayCircle className="mt-0.5 h-4 w-4 shrink-0 text-cyan" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">{v.titulo}</span>
+                      <span className="block text-xs text-muted-foreground">{v.descricao}</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </section>
+
             <section className="card-soft overflow-hidden p-0">
-              <div className="border-b border-border px-6 py-4">
-                <h2 className="font-display text-lg font-bold">Exemplo comentado</h2>
+              <div className="border-b border-border px-5 py-4">
+                <h2 className="font-display text-base font-bold sm:text-lg">Exemplo comentado</h2>
                 <p className="mt-1 text-xs text-muted-foreground">{content.example.language}</p>
               </div>
-              <pre className="overflow-x-auto bg-surface/60 px-5 py-4 font-mono text-[13px] leading-6 text-foreground">
+              <pre className="overflow-x-auto bg-surface/60 px-4 py-4 font-mono text-[12.5px] leading-6 text-foreground sm:px-5 sm:text-[13px]">
                 <code>{content.example.code}</code>
               </pre>
               <div className="flex gap-2 border-t border-border px-5 py-4 text-sm text-muted-foreground">
@@ -218,11 +330,11 @@ function LessonPage() {
               </div>
             </section>
 
-            <section className="card-soft p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-lg font-bold">Quiz rápido</h2>
-                <span className="text-xs text-muted-foreground">
-                  {respondidas}/{content.quiz.length} respondidas • {acertos} certas
+            <section className="card-soft p-5 sm:p-6">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                <h2 className="font-display text-base font-bold sm:text-lg">Quiz rápido</h2>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {respondidas}/{content.quiz.length} • {acertos} certas
                 </span>
               </div>
               <div className="mt-4 space-y-6">
@@ -266,6 +378,50 @@ function LessonPage() {
                   );
                 })}
               </div>
+
+              {quizCompleto && (
+                <div
+                  className={`mt-6 rounded-xl border p-4 ${
+                    erradas.length === 0 ? "border-success/50" : "border-warn/50"
+                  }`}
+                >
+                  <p className="text-sm font-bold">
+                    Seu desempenho: {acertos} acertos e {erradas.length}{" "}
+                    {erradas.length === 1 ? "erro" : "erros"} em {content.quiz.length}
+                  </p>
+                  {erradas.length === 0 ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Gabaritou. Pode seguir para o exercício com tranquilidade.
+                    </p>
+                  ) : (
+                    <ul className="mt-3 space-y-3">
+                      {erradas.map((r) => (
+                        <li key={r.q.q} className="text-xs">
+                          <p className="font-semibold text-foreground">{r.q.q}</p>
+                          <p className="mt-1 text-muted-foreground">
+                            Você marcou “{r.q.options[r.escolhida!]}”. O certo é “{r.q.options[r.q.answer]}”.
+                          </p>
+                          <p className="mt-1 text-muted-foreground">
+                            <span className="font-semibold text-cyan">Por quê (material desta lição):</span> {r.q.why}
+                          </p>
+                          <button
+                            onClick={() => perguntar(r.q.q)}
+                            className="mt-1 font-semibold text-cyan"
+                          >
+                            Pedir mais explicação ao tutor →
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <button
+                    onClick={() => setAnswers({})}
+                    className="mt-4 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    Refazer o quiz
+                  </button>
+                </div>
+              )}
             </section>
 
             <button
@@ -283,31 +439,21 @@ function LessonPage() {
                 <Sparkles className="h-4 w-4" /> Nova conquista desbloqueada!
               </p>
             )}
-
-            {next && (
-              <Link
-                to="/cursos/$slug/licao/$m/$l"
-                params={{ slug: course.slug, m: String(next.m), l: String(next.l) }}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-cyan"
-              >
-                Próxima lição <ArrowRight className="h-4 w-4" />
-              </Link>
-            )}
           </article>
 
-          <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <div className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div className="card-soft overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
-                <h2 className="font-display text-lg font-bold">Exercício</h2>
+                <h2 className="font-display text-base font-bold sm:text-lg">Exercício</h2>
                 <p className="mt-1 text-sm text-muted-foreground">{ex.prompt}</p>
               </div>
               <textarea
                 value={code}
                 spellCheck={false}
                 onChange={(e) => setCode(e.target.value)}
-                className="min-h-[240px] w-full resize-none bg-surface/60 px-4 py-3 font-mono text-sm leading-6 text-foreground outline-none"
+                className="min-h-[220px] w-full resize-y bg-surface/60 px-4 py-3 font-mono text-[13px] leading-6 text-foreground outline-none sm:min-h-[240px] sm:text-sm"
               />
-              <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
                 <button
                   onClick={check}
                   disabled={running}
@@ -333,7 +479,7 @@ function LessonPage() {
                     title="Pré-visualização"
                     sandbox="allow-scripts allow-modals"
                     srcDoc={srcDoc}
-                    className="h-64 w-full border-t border-border bg-white"
+                    className="h-56 w-full border-t border-border bg-white sm:h-64"
                   />
                 )
               ) : (
@@ -349,7 +495,9 @@ function LessonPage() {
                     </p>
                   )}
                   {output && (
-                    <pre className="mt-2 font-mono text-sm whitespace-pre-wrap text-muted-foreground">{output}</pre>
+                    <pre className="mt-2 overflow-x-auto font-mono text-sm whitespace-pre-wrap text-muted-foreground">
+                      {output}
+                    </pre>
                   )}
                   {!output && status === "idle" && (
                     <p className="text-sm text-muted-foreground">Escreva sua solução e clique em Verificar.</p>
@@ -360,14 +508,16 @@ function LessonPage() {
 
             <div className="card-soft overflow-hidden p-0">
               <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-                <Bot className="h-4 w-4 text-cyan" />
-                <h2 className="font-display text-lg font-bold">Tire sua dúvida</h2>
+                <Bot className="h-4 w-4 shrink-0 text-cyan" />
+                <h2 className="font-display text-base font-bold sm:text-lg">Tire sua dúvida</h2>
               </div>
-              <p className="px-5 pt-4 text-xs text-muted-foreground">
-                Responde apenas com o conteúdo desta lição — nada inventado.
+              <p className="flex items-start gap-2 px-5 pt-4 text-xs text-muted-foreground">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
+                Cada resposta é conferida contra o material desta lição antes de aparecer. Sem IA por trás e sem
+                inventar nada.
               </p>
 
-              <div className="max-h-72 space-y-3 overflow-y-auto px-5 py-4">
+              <div className="max-h-80 space-y-3 overflow-y-auto px-5 py-4">
                 {chat.length === 0 && (
                   <div className="flex flex-wrap gap-2">
                     {tutorSuggestions.map((s) => (
@@ -384,14 +534,21 @@ function LessonPage() {
                 {chat.map((msg, i) => (
                   <div
                     key={i}
-                    className={`rounded-xl px-4 py-3 text-sm whitespace-pre-wrap ${
+                    className={`rounded-xl px-4 py-3 text-sm break-words whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "bg-surface-2 text-foreground"
                         : "border border-border bg-surface text-muted-foreground"
                     }`}
                   >
                     {msg.role === "tutor" && msg.source && (
-                      <p className="mb-1 text-[11px] font-semibold tracking-wide text-cyan uppercase">{msg.source}</p>
+                      <p
+                        className={`mb-1 inline-flex items-center gap-1 text-[11px] font-semibold tracking-wide uppercase ${
+                          msg.verificado ? "text-cyan" : "text-warn"
+                        }`}
+                      >
+                        {msg.verificado && <ShieldCheck className="h-3 w-3" />}
+                        Fonte: {msg.source}
+                      </p>
                     )}
                     {msg.text}
                   </div>
@@ -406,12 +563,12 @@ function LessonPage() {
                     if (e.key === "Enter") perguntar();
                   }}
                   placeholder="Pergunte sobre esta lição..."
-                  className="flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-cyan"
+                  className="min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-cyan"
                 />
                 <button
                   onClick={() => perguntar()}
                   aria-label="Enviar pergunta"
-                  className="bg-brand rounded-xl p-2.5 text-primary-foreground"
+                  className="bg-brand shrink-0 rounded-xl p-2.5 text-primary-foreground"
                 >
                   <Send className="h-4 w-4" />
                 </button>
@@ -419,7 +576,70 @@ function LessonPage() {
             </div>
           </div>
         </div>
+
+        {/* Navegação anterior / próxima (desktop) */}
+        <div className="mt-10 hidden grid-cols-2 gap-3 lg:grid">
+          {prev ? (
+            <Link
+              to="/cursos/$slug/licao/$m/$l"
+              params={{ slug: course.slug, m: String(prev.m), l: String(prev.l) }}
+              className="card-soft flex items-center gap-2 px-5 py-4 text-sm font-semibold"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" /> Lição anterior
+            </Link>
+          ) : (
+            <span />
+          )}
+          {next && (
+            <Link
+              to="/cursos/$slug/licao/$m/$l"
+              params={{ slug: course.slug, m: String(next.m), l: String(next.l) }}
+              className="card-soft flex items-center justify-end gap-2 px-5 py-4 text-sm font-semibold text-cyan"
+            >
+              Próxima lição <ArrowRight className="h-4 w-4 shrink-0" />
+            </Link>
+          )}
+        </div>
       </main>
+
+      {/* Barra fixa de navegação no celular */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 py-2.5 backdrop-blur-xl lg:hidden">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+          {prev ? (
+            <Link
+              to="/cursos/$slug/licao/$m/$l"
+              params={{ slug: course.slug, m: String(prev.m), l: String(prev.l) }}
+              aria-label="Lição anterior"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          ) : (
+            <span className="h-10 w-10" />
+          )}
+          <button
+            onClick={toggleDone}
+            className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-xs font-bold ${
+              done ? "border border-success/50 text-success" : "bg-brand text-primary-foreground"
+            }`}
+          >
+            {done ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <CircleDashed className="h-4 w-4 shrink-0" />}
+            <span className="truncate">{done ? "Concluída" : "Concluir lição"}</span>
+          </button>
+          {next ? (
+            <Link
+              to="/cursos/$slug/licao/$m/$l"
+              params={{ slug: course.slug, m: String(next.m), l: String(next.l) }}
+              aria-label="Próxima lição"
+              className="bg-brand inline-flex h-10 w-10 items-center justify-center rounded-xl text-primary-foreground"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <span className="h-10 w-10" />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
