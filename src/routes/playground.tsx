@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Play, RotateCcw, Save, Terminal } from "lucide-react";
+import { History, Loader2, Play, RotateCcw, Save, Terminal, Trash2 } from "lucide-react";
 import { listRuntimes, runCode, type RunResult } from "@/lib/run-code.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useSession } from "@/hooks/useSession";
@@ -230,6 +230,7 @@ function Playground() {
   const [runtimes, setRuntimes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [versions, setVersions] = useState<CodeVersion[]>([]);
   const { user } = useSession();
   const { snippet } = Route.useSearch();
 
@@ -285,6 +286,50 @@ function Playground() {
     setTimeout(() => setSavedMsg(null), 3000);
   }
 
+  function saveVersion(motivo: string) {
+    setVersions((atual) => {
+      if (atual[0]?.code === code) return atual;
+      const nova: CodeVersion = {
+        id: `${Date.now()}`,
+        ts: Date.now(),
+        motivo,
+        filename,
+        language: customLang.trim() || preset.piston || preset.id,
+        code,
+      };
+      const lista = [nova, ...atual].slice(0, 20);
+      try {
+        localStorage.setItem(VERSIONS_KEY, JSON.stringify(lista));
+      } catch {
+        /* armazenamento indisponível */
+      }
+      return lista;
+    });
+  }
+
+  function restoreVersion(v: CodeVersion) {
+    saveVersion("antes de restaurar");
+    setCode(v.code);
+    setFilename(v.filename);
+    if (v.language === "web" || v.filename.endsWith(".html")) setSrcDoc(v.code);
+    setSavedMsg(`Versão de ${horario(v.ts)} restaurada.`);
+    setTimeout(() => setSavedMsg(null), 3000);
+  }
+
+  function removeVersion(id: string) {
+    setVersions((atual) => {
+      const lista = atual.filter((v) => v.id !== id);
+      try {
+        localStorage.setItem(VERSIONS_KEY, JSON.stringify(lista));
+      } catch {
+        /* armazenamento indisponível */
+      }
+      return lista;
+    });
+  }
+
+
+
 
 
   const isWeb = preset.id === "web" && !customLang;
@@ -301,6 +346,7 @@ function Playground() {
   }
 
   async function handleRun() {
+    saveVersion("execução");
     if (isWeb) {
       setSrcDoc(code);
       return;
@@ -515,7 +561,79 @@ function Playground() {
             )}
           </div>
         </div>
+
+        <section className="card-soft mt-8 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <History className="h-4 w-4 text-cyan" />
+              <h2 className="font-display text-lg font-bold">Histórico e versões</h2>
+            </div>
+            <button
+              onClick={() => saveVersion("manual")}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            >
+              Guardar versão atual
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Guardamos as 20 últimas versões deste navegador automaticamente a cada execução. Restaure
+            quando quebrar algo.
+          </p>
+
+          {versions.length === 0 ? (
+            <p className="mt-5 text-sm text-muted-foreground">
+              Nenhuma versão ainda — rode o código uma vez para começar o histórico.
+            </p>
+          ) : (
+            <ul className="mt-5 space-y-2">
+              {versions.map((v) => (
+                <li key={v.id} className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-mono text-xs text-foreground">{v.filename}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {horario(v.ts)} • {v.language} • {v.motivo} • {v.code.split("\n").length} linhas
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => restoreVersion(v)}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    Restaurar
+                  </button>
+                  <button
+                    onClick={() => removeVersion(v.id)}
+                    aria-label="Apagar versão"
+                    className="rounded-lg border border-border p-1.5 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </main>
     </div>
   );
 }
+
+type CodeVersion = {
+  id: string;
+  ts: number;
+  motivo: string;
+  filename: string;
+  language: string;
+  code: string;
+};
+
+const VERSIONS_KEY = "codding:playground:versions";
+
+function horario(ts: number) {
+  return new Date(ts).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
