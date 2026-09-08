@@ -590,11 +590,15 @@ export const courses: Course[] = [
       },
     ],
   },
-];
+].map((c) => ({
+  ...c,
+  modules: [...c.modules, ...(extraModules[c.slug] ?? [])],
+}));
 
 export function getCourse(slug: string) {
   return courses.find((c) => c.slug === slug);
 }
+
 
 export function countLessons(course: Course) {
   return course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
