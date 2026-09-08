@@ -15,14 +15,18 @@ export function SiteHeader({ crumb }: { crumb?: string }) {
       setName(null);
       return;
     }
-    supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) =>
-        setName(data?.display_name ?? user.email?.split("@")[0] ?? "Aluno"),
-      );
+    let active = true;
+    void (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (active) setName(data?.display_name ?? user.email?.split("@")[0] ?? "Aluno");
+    })();
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   async function signOut() {

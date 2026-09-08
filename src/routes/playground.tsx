@@ -245,12 +245,13 @@ function Playground() {
 
   useEffect(() => {
     if (!snippet || !user) return;
-    supabase
-      .from("snippets")
-      .select("language, filename, code")
-      .eq("id", snippet)
-      .maybeSingle()
-      .then(({ data }) => {
+    void (async () => {
+      const { data } = await supabase
+        .from("snippets")
+        .select("language, filename, code")
+        .eq("id", snippet)
+        .maybeSingle();
+      {
         if (!data) return;
         setCode(data.code);
         setFilename(data.filename);
@@ -261,7 +262,8 @@ function Playground() {
         } else {
           setCustomLang(data.language);
         }
-      });
+      }
+    })();
   }, [snippet, user]);
 
   async function saveSnippet() {

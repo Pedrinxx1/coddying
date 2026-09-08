@@ -85,14 +85,16 @@ function LessonPage() {
       setDone(false);
       return;
     }
-    supabase
-      .from("lesson_progress")
-      .select("id")
-      .eq("course_slug", course.slug)
-      .eq("module_index", m)
-      .eq("lesson_index", l)
-      .maybeSingle()
-      .then(({ data }) => setDone(Boolean(data)));
+    void (async () => {
+      const { data } = await supabase
+        .from("lesson_progress")
+        .select("id")
+        .eq("course_slug", course.slug)
+        .eq("module_index", m)
+        .eq("lesson_index", l)
+        .maybeSingle();
+      setDone(Boolean(data));
+    })();
   }, [user, course.slug, m, l]);
 
   const isWeb = ex.expected === null;

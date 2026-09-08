@@ -65,13 +65,13 @@ function CourseDetail() {
       setDone(new Set());
       return;
     }
-    supabase
-      .from("lesson_progress")
-      .select("module_index, lesson_index")
-      .eq("course_slug", course.slug)
-      .then(({ data }) =>
-        setDone(new Set((data ?? []).map((d) => `${d.module_index}-${d.lesson_index}`))),
-      );
+    void (async () => {
+      const { data } = await supabase
+        .from("lesson_progress")
+        .select("module_index, lesson_index")
+        .eq("course_slug", course.slug);
+      setDone(new Set((data ?? []).map((d) => `${d.module_index}-${d.lesson_index}`)));
+    })();
   }, [user, course.slug]);
 
   return (
