@@ -60,7 +60,7 @@ print(limpo)  # continua "Ana Souza"`,
       },
     ],
     exercise: {
-      prompt: "Junte as partes do nome e imprima exatamente 15 caracteres? Não: imprima o resultado 15 usando o tamanho do texto 'programacaoboa' mais 1.",
+      prompt: "Imprima o tamanho do texto 'programacaoboa' somado a 1 (a saída deve ser 15).",
       starter: `texto = "programacaoboa"\n# imprima o tamanho do texto + 1\nprint(0)`,
       expected: "15",
       language: "python",
