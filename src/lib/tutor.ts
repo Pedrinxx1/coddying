@@ -3,7 +3,14 @@
 
 import type { LessonContent } from "@/data/lessonContent";
 
-export type TutorAnswer = { text: string; source: string };
+export type TutorAnswer = {
+  text: string;
+  source: string;
+  /** true quando a resposta veio comprovadamente do material desta lição */
+  verificado: boolean;
+  /** % de palavras da resposta que existem no material da lição */
+  cobertura: number;
+};
 
 const strip = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
