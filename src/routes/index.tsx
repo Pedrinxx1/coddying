@@ -209,7 +209,11 @@ function StatCard({ item }: { item: (typeof stats)[number] }) {
       { threshold: 0.4 },
     );
     io.observe(el);
-    return () => io.disconnect();
+    const t = setTimeout(() => setRun(true), 800);
+    return () => {
+      clearTimeout(t);
+      io.disconnect();
+    };
   }, []);
   const value = useCountUp(item.value, run);
   const Icon = item.icon;
@@ -268,7 +272,7 @@ function Index() {
             </a>
             <a
               href="#cta"
-              className="bg-brand glow rounded-xl px-4 py-2 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03]"
+              className="bg-brand glow rounded-xl px-4 py-2 text-sm font-bold whitespace-nowrap text-primary-foreground transition-transform hover:scale-[1.03]"
             >
               Começar Grátis
             </a>
