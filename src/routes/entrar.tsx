@@ -218,6 +218,14 @@ function AuthPage() {
             </button>
           </form>
 
+          {mode === "login" && (
+            <p className="mt-4 text-center text-sm">
+              <Link to="/esqueci-senha" className="font-semibold text-cyan">
+                Esqueci minha senha
+              </Link>
+            </p>
+          )}
+
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {mode === "login" ? "Ainda não tem conta?" : "Já tem uma conta?"}{" "}
             <button
@@ -230,6 +238,7 @@ function AuthPage() {
               {mode === "login" ? "Criar agora" : "Entrar"}
             </button>
           </p>
+
         </div>
       </div>
     </div>
