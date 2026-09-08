@@ -1,6 +1,7 @@
 // Biblioteca de conteúdo real das lições.
 // Cada tópico traz explicação profunda, exemplo comentado, erros comuns,
 // perguntas de quiz e (quando faz sentido) um exercício com saída esperada.
+import { extraTopics } from "./lessonTopicsExtra";
 
 export type QuizQuestion = {
   q: string;
@@ -22,7 +23,7 @@ export type Topic = {
   exercise?: { prompt: string; starter: string; expected: string; language?: string };
 };
 
-export const topics: Topic[] = [
+const baseTopics: Topic[] = [
   {
     id: "algoritmo",
     title: "Algoritmos e pensamento computacional",
@@ -1394,6 +1395,8 @@ echo "6. Issues abertas com o que você faria a seguir"`,
     ],
   },
 ];
+
+export const topics: Topic[] = [...baseTopics, ...extraTopics];
 
 const stripAccents = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();

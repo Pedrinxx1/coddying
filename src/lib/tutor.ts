@@ -3,7 +3,14 @@
 
 import type { LessonContent } from "@/data/lessonContent";
 
-export type TutorAnswer = { text: string; source: string };
+export type TutorAnswer = {
+  text: string;
+  source: string;
+  /** true quando a resposta veio comprovadamente do material desta lição */
+  verificado: boolean;
+  /** % de palavras da resposta que existem no material da lição */
+  cobertura: number;
+};
 
 const strip = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -51,7 +58,59 @@ function bestParagraph(question: string, content: LessonContent): { text: string
   return best && best.score >= 8 ? { text: best.text, label: best.label } : null;
 }
 
+/** Todo o material desta lição, em um único texto — a única fonte permitida. */
+export function lessonCorpus(content: LessonContent): string {
+  const t = content.topic;
+  return strip(
+    [
+      t.intro,
+      ...t.deep,
+      ...t.pitfalls,
+      t.example.code,
+      t.example.explain,
+      ...content.sections.map((s) => `${s.title} ${s.body}`),
+      ...content.quiz.map((q) => `${q.q} ${q.options.join(" ")} ${q.why}`),
+      content.exercise.prompt,
+      content.exercise.starter,
+    ].join("\n"),
+  );
+}
+
+/**
+ * Verifica que a resposta saiu mesmo do material da lição.
+ * Nenhum modelo de IA é consultado: comparamos palavra a palavra com o conteúdo.
+ */
+export function verificarResposta(texto: string, content: LessonContent) {
+  const corpus = lessonCorpus(content);
+  const palavras = strip(texto)
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 4);
+  if (palavras.length === 0) return { verificado: true, cobertura: 1 };
+  const dentro = palavras.filter((w) => corpus.includes(w)).length;
+  const cobertura = dentro / palavras.length;
+  return { verificado: cobertura >= 0.6, cobertura };
+}
+
 export function askTutor(question: string, content: LessonContent, lessonTitle: string): TutorAnswer {
+  const bruto = responder(question, content, lessonTitle);
+  const { verificado, cobertura } = verificarResposta(bruto.text, content);
+  if (!verificado && bruto.source !== "Tutor" && bruto.source !== "Fora do conteúdo da lição") {
+    return {
+      text: `Não consigo garantir que isso esteja no material desta lição, então não vou responder por cima.\n\nO que esta lição cobre: ${content.topic.intro}`,
+      source: "Fora do conteúdo da lição",
+      verificado: false,
+      cobertura,
+    };
+  }
+  return { ...bruto, verificado, cobertura };
+}
+
+function responder(
+  question: string,
+  content: LessonContent,
+  lessonTitle: string,
+): { text: string; source: string } {
   const q = question.trim();
   if (q.length < 2) {
     return {
