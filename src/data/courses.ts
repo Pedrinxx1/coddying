@@ -594,9 +594,32 @@ const baseCourses: Course[] = [
   },
 ];
 
-export const courses: Course[] = baseCourses.map((c) => ({
-  ...c,
-  modules: [...c.modules, ...(extraModules[c.slug] ?? [])],
+const genericModuleNames: Record<string, string> = {
+  Básico: "Primeiros passos",
+  Intermediário: "Construindo aplicações",
+  Avançado: "Técnicas avançadas",
+};
+
+function organizeModules(course: Course) {
+  const seenLessons = new Set<string>();
+
+  return [...course.modules, ...(extraModules[course.slug] ?? [])]
+    .map((module) => ({
+      ...module,
+      title: genericModuleNames[module.title] ?? module.title,
+      lessons: module.lessons.filter((lesson) => {
+        const key = lesson.trim().toLocaleLowerCase("pt-BR");
+        if (seenLessons.has(key)) return false;
+        seenLessons.add(key);
+        return true;
+      }),
+    }))
+    .filter((module) => module.lessons.length > 0);
+}
+
+export const courses: Course[] = baseCourses.map((course) => ({
+  ...course,
+  modules: organizeModules(course),
 }));
 
 

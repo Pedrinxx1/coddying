@@ -10,7 +10,7 @@ export type Exercise = {
 
 export type LessonContent = {
   topic: Topic;
-  sections: { title: string; body: string }[];
+  sections: { title: string; body: string; kind: "overview" | "concept" | "practice" | "detail" | "warning" }[];
   example: { language: string; code: string; explain: string };
   quiz: QuizQuestion[];
   exercise: Exercise;
@@ -31,14 +31,16 @@ export function lessonContent(course: Course, moduleTitle: string, lessonTitle: 
   const topic = findTopic(lessonTitle, moduleTitle, course.lang);
 
   const sections = [
-    { title: `O que é ${lessonTitle.toLowerCase()}`, body: topic.intro },
+    { title: "Visão geral", body: topic.intro, kind: "overview" as const },
     ...topic.deep.map((body, i) => ({
-      title: ["Como funciona por dentro", "Na prática, no dia a dia", "Indo mais fundo"][i] ?? "Aprofundando",
+      title: ["Conceito essencial", "Aplicação prática", "Detalhes que fazem diferença"][i] ?? `Aprofundamento ${i + 1}`,
       body,
+      kind: (["concept", "practice", "detail"] as const)[i] ?? ("detail" as const),
     })),
     {
-      title: "Erros comuns (e como escapar deles)",
+      title: "Erros comuns e como evitar",
       body: topic.pitfalls.map((p) => `• ${p}`).join("\n"),
+      kind: "warning" as const,
     },
   ];
 

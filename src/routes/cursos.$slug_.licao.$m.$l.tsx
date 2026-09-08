@@ -28,6 +28,32 @@ import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
 import { completeLesson, uncompleteLesson } from "@/lib/learning";
 
+function LessonText({ body }: { body: string }) {
+  const blocks = body.split(/\n+/).map((block) => block.trim()).filter(Boolean);
+  const bullets = blocks.filter((block) => block.startsWith("•"));
+
+  if (bullets.length === blocks.length && bullets.length > 0) {
+    return (
+      <ul className="mt-4 space-y-3 text-[15px] leading-7 text-muted-foreground sm:text-base">
+        {bullets.map((item) => (
+          <li key={item} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
+            <span aria-hidden="true" className="mt-[0.7rem] h-1.5 w-1.5 rounded-full bg-cyan" />
+            <span className="min-w-0 break-words">{item.slice(1).trim()}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-4 text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8">
+      {blocks.map((paragraph) => (
+        <p key={paragraph} className="break-words">{paragraph}</p>
+      ))}
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/cursos/$slug_/licao/$m/$l")({
   loader: ({ params }) => {
     const course = getCourse(params.slug);
@@ -230,7 +256,9 @@ function LessonPage() {
         <h1 className="mt-2 font-display text-2xl leading-tight font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
           {lesson}
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">Tema: {content.topic.title}</p>
+        {content.topic.title.toLocaleLowerCase("pt-BR") !== lesson.toLocaleLowerCase("pt-BR") && (
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Parte de: {content.topic.title}</p>
+        )}
 
         {/* Índice do módulo — navegação rápida entre lições */}
         <div className="card-soft mt-5 overflow-hidden p-0">
@@ -267,14 +295,20 @@ function LessonPage() {
           )}
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:gap-8">
-          <article className="min-w-0 space-y-6">
-            {content.sections.map((s) => (
-              <section key={s.title} className="card-soft p-5 sm:p-6">
-                <h2 className="font-display text-base font-bold sm:text-lg">{s.title}</h2>
-                <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{s.body}</p>
-              </section>
-            ))}
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)] lg:gap-10">
+          <article className="min-w-0 space-y-8">
+            <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+              {content.sections.map((s, index) => (
+                <section
+                  key={`${s.kind}-${index}`}
+                  className={`px-5 py-6 sm:px-7 sm:py-8 ${index > 0 ? "border-t border-border" : ""}`}
+                >
+                  <p className="text-xs font-bold tracking-wide text-cyan uppercase">{String(index + 1).padStart(2, "0")}</p>
+                  <h2 className="mt-2 font-display text-lg font-bold leading-snug sm:text-xl">{s.title}</h2>
+                  <LessonText body={s.body} />
+                </section>
+              ))}
+            </div>
 
             <section className="card-soft p-5 sm:p-6">
               <div className="flex items-center gap-2">
