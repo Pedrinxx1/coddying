@@ -56,7 +56,7 @@ const presets: Preset[] = [
     label: "Python",
     ext: "py",
     piston: "python",
-    sample: `nome = input("Seu nome: ") or "dev"\nprint(f"Olá, {nome}! Bem-vindo ao Codding.")\n\nfor i in range(1, 6):\n    print(i, "->", i * i)`,
+    sample: `nome = "dev"\nprint(f"Olá, {nome}! Bem-vindo ao Codding.")\n\nfor i in range(1, 6):\n    print(i, "->", i * i)\n\n# Dica: use input() e escreva o valor no campo "Entrada (stdin)".`,
   },
   {
     id: "javascript",
