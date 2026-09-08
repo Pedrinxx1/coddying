@@ -1,0 +1,455 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, Loader2, Play, RotateCcw, Terminal } from "lucide-react";
+import { listRuntimes, runCode, type RunResult } from "@/lib/run-code.functions";
+
+export const Route = createFileRoute("/playground")({
+  head: () => ({
+    meta: [
+      { title: "Playground — escreva e rode código em qualquer linguagem | Codding" },
+      {
+        name: "description",
+        content:
+          "Editor online gratuito com suporte a dezenas de linguagens e qualquer extensão de arquivo. Rode Python, Java, C++, Rust, Go, SQL e preview de HTML/CSS/JS.",
+      },
+      { property: "og:title", content: "Playground de código online — Codding" },
+      {
+        property: "og:description",
+        content: "Escreva, rode e teste código em dezenas de linguagens direto no navegador.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Playground,
+});
+
+type Preset = { id: string; label: string; ext: string; piston?: string; sample: string };
+
+const presets: Preset[] = [
+  {
+    id: "web",
+    label: "Web (HTML/CSS/JS)",
+    ext: "html",
+    sample: `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font-family: system-ui; background:#0b1020; color:#e6edf7;
+             display:grid; place-items:center; height:100vh; margin:0 }
+      button { padding:.7rem 1.2rem; border-radius:10px; border:0;
+               background:#22d3ee; color:#04121a; font-weight:700; cursor:pointer }
+    </style>
+  </head>
+  <body>
+    <div style="text-align:center">
+      <h1 id="t">Olá, Codding! 👋</h1>
+      <button onclick="document.getElementById('t').textContent='Funciona!'">Clique</button>
+    </div>
+  </body>
+</html>`,
+  },
+  {
+    id: "python",
+    label: "Python",
+    ext: "py",
+    piston: "python",
+    sample: `nome = "dev"\nprint(f"Olá, {nome}! Bem-vindo ao Codding.")\n\nfor i in range(1, 6):\n    print(i, "->", i * i)\n\n# Dica: use input() e escreva o valor no campo "Entrada (stdin)".`,
+  },
+  {
+    id: "javascript",
+    label: "JavaScript (Node)",
+    ext: "js",
+    piston: "javascript",
+    sample: `const nums = [1, 2, 3, 4, 5];\nconsole.log("Dobros:", nums.map(n => n * 2));\nconsole.log("Soma:", nums.reduce((a, b) => a + b, 0));`,
+  },
+  {
+    id: "typescript",
+    label: "TypeScript",
+    ext: "ts",
+    piston: "typescript",
+    sample: `type Aluno = { nome: string; xp: number };\nconst alunos: Aluno[] = [{ nome: "Ana", xp: 320 }, { nome: "Léo", xp: 180 }];\nalunos.forEach(a => console.log(\`\${a.nome}: \${a.xp} XP\`));`,
+  },
+  {
+    id: "java",
+    label: "Java",
+    ext: "java",
+    piston: "java",
+    sample: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Olá, Codding!");\n        for (int i = 1; i <= 5; i++) System.out.println(i + " -> " + i * i);\n    }\n}`,
+  },
+  {
+    id: "c",
+    label: "C",
+    ext: "c",
+    piston: "c",
+    sample: `#include <stdio.h>\n\nint main() {\n    printf("Olá, Codding!\\n");\n    return 0;\n}`,
+  },
+  {
+    id: "cpp",
+    label: "C++",
+    ext: "cpp",
+    piston: "c++",
+    sample: `#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Olá, Codding!" << endl;\n    return 0;\n}`,
+  },
+  {
+    id: "csharp",
+    label: "C#",
+    ext: "cs",
+    piston: "csharp",
+    sample: `using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Olá, Codding!");\n    }\n}`,
+  },
+  {
+    id: "go",
+    label: "Go",
+    ext: "go",
+    piston: "go",
+    sample: `package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Olá, Codding!")\n}`,
+  },
+  {
+    id: "rust",
+    label: "Rust",
+    ext: "rs",
+    piston: "rust",
+    sample: `fn main() {\n    println!("Olá, Codding!");\n}`,
+  },
+  {
+    id: "php",
+    label: "PHP",
+    ext: "php",
+    piston: "php",
+    sample: `<?php\necho "Olá, Codding!\\n";\nforeach (range(1,5) as $i) echo "$i -> " . $i*$i . "\\n";`,
+  },
+  {
+    id: "ruby",
+    label: "Ruby",
+    ext: "rb",
+    piston: "ruby",
+    sample: `puts "Olá, Codding!"\n(1..5).each { |i| puts "#{i} -> #{i*i}" }`,
+  },
+  {
+    id: "swift",
+    label: "Swift",
+    ext: "swift",
+    piston: "swift",
+    sample: `print("Olá, Codding!")`,
+  },
+  {
+    id: "sqlite3",
+    label: "SQL (SQLite)",
+    ext: "sql",
+    piston: "sql",
+    sample: `CREATE TABLE alunos (nome TEXT, xp INTEGER);\nINSERT INTO alunos VALUES ('Ana', 320), ('Léo', 180);\nSELECT nome, xp FROM alunos ORDER BY xp DESC;`,
+  },
+  {
+    id: "bash",
+    label: "Bash",
+    ext: "sh",
+    piston: "bash",
+    sample: `echo "Olá, Codding!"\nfor i in 1 2 3; do echo "linha $i"; done`,
+  },
+  {
+    id: "lua",
+    label: "Lua",
+    ext: "lua",
+    piston: "lua",
+    sample: `print("Olá, Codding!")`,
+  },
+  {
+    id: "haskell",
+    label: "Haskell",
+    ext: "hs",
+    piston: "haskell",
+    sample: `main :: IO ()\nmain = putStrLn "Olá, Codding!"`,
+  },
+  {
+    id: "perl",
+    label: "Perl",
+    ext: "pl",
+    piston: "perl",
+    sample: `print "Olá, Codding!\\n";`,
+  },
+  {
+    id: "scala",
+    label: "Scala",
+    ext: "scala",
+    piston: "scala",
+    sample: `@main def hello() = println("Olá, Codding!")`,
+  },
+  {
+    id: "elixir",
+    label: "Elixir",
+    ext: "ex",
+    piston: "elixir",
+    sample: `IO.puts("Olá, Codding!")`,
+  },
+  {
+    id: "r",
+    label: "R",
+    ext: "r",
+    piston: "r",
+    sample: `cat("Olá, Codding!\\n")\nprint(summary(c(1,2,3,4,5)))`,
+  },
+  {
+    id: "kotlin",
+    label: "Kotlin",
+    ext: "kt",
+    piston: "kotlin",
+    sample: `fun main() {\n    println("Olá, Codding!")\n}`,
+  },
+  {
+    id: "dart",
+    label: "Dart",
+    ext: "dart",
+    piston: "dart",
+    sample: `void main() {\n  print('Olá, Codding!');\n}`,
+  },
+];
+
+
+
+function Playground() {
+  const initial = presets[0] as Preset;
+
+
+  const [preset, setPreset] = useState<Preset>(initial);
+  const [code, setCode] = useState(initial.sample);
+  const [filename, setFilename] = useState(`main.${initial.ext}`);
+  const [stdin, setStdin] = useState("");
+  const [customLang, setCustomLang] = useState("");
+  const [result, setResult] = useState<RunResult | null>(null);
+  const [running, setRunning] = useState(false);
+  const [srcDoc, setSrcDoc] = useState(initial.id === "web" ? initial.sample : "");
+  const [runtimes, setRuntimes] = useState<string[]>([]);
+
+  const run = useServerFn(runCode);
+  const fetchRuntimes = useServerFn(listRuntimes);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    fetchRuntimes()
+      .then((rs) => setRuntimes(rs))
+      .catch(() => undefined);
+  }, [fetchRuntimes]);
+
+
+  const isWeb = preset.id === "web" && !customLang;
+
+  function selectPreset(id: string) {
+    const p = presets.find((x) => x.id === id);
+    if (!p) return;
+    setPreset(p);
+    setCode(p.sample);
+    setFilename(`main.${p.ext}`);
+    setResult(null);
+    setCustomLang("");
+    setSrcDoc(p.id === "web" ? p.sample : "");
+  }
+
+  async function handleRun() {
+    if (isWeb) {
+      setSrcDoc(code);
+      return;
+    }
+    setRunning(true);
+    setResult(null);
+    try {
+      const language = customLang.trim() || preset.piston || preset.id;
+      const res = await run({ data: { language, code, stdin } });
+      setResult(res);
+    } catch (e) {
+      setResult({ ok: false, output: "", error: e instanceof Error ? e.message : "Erro" });
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const el = e.currentTarget;
+      const s = el.selectionStart;
+      const next = code.slice(0, s) + "  " + code.slice(el.selectionEnd);
+      setCode(next);
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = s + 2;
+      });
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      void handleRun();
+    }
+  }
+
+  const lineCount = useMemo(() => code.split("\n").length, [code]);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="bg-brand flex h-9 w-9 items-center justify-center rounded-xl font-mono text-sm font-bold text-primary-foreground">
+              {"</>"}
+            </span>
+            <span className="font-display text-lg font-extrabold tracking-tight">Codding</span>
+          </Link>
+          <span className="hidden text-sm text-muted-foreground sm:block">/ Playground</span>
+          <Link
+            to="/cursos"
+            className="ml-auto inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold transition-colors hover:border-blue hover:bg-surface"
+          >
+            <ArrowLeft className="h-4 w-4" /> Cursos
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
+          Playground de <span className="text-gradient">código</span>
+        </h1>
+        <p className="mt-2 max-w-2xl text-muted-foreground">
+          Escreva e execute código em dezenas de linguagens. Escolha qualquer nome e extensão de
+          arquivo — ou digite a linguagem que quiser. Atalho: Ctrl/⌘ + Enter para rodar.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          {presets.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => selectPreset(p.id)}
+              className={`rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors ${
+                preset.id === p.id && !customLang
+                  ? "border-cyan/60 bg-surface-2 text-foreground"
+                  : "border-border text-muted-foreground hover:border-blue hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Nome do arquivo (qualquer extensão)
+            <input
+              value={filename}
+              onChange={(e) => setFilename(e.target.value)}
+              className="rounded-xl border border-border bg-surface px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-cyan"
+              placeholder="main.py"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Linguagem personalizada (opcional)
+            <input
+              value={customLang}
+              onChange={(e) => setCustomLang(e.target.value)}
+              list="runtimes"
+              className="rounded-xl border border-border bg-surface px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-cyan"
+              placeholder="ex.: elixir, haskell, perl, scala..."
+            />
+            <datalist id="runtimes">
+              {runtimes.map((r) => (
+                <option key={r} value={r} />
+              ))}
+            </datalist>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Entrada (stdin)
+            <input
+              value={stdin}
+              onChange={(e) => setStdin(e.target.value)}
+              className="rounded-xl border border-border bg-surface px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-cyan"
+              placeholder="texto enviado ao programa"
+            />
+          </label>
+        </div>
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          <div className="card-soft overflow-hidden p-0">
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+              <span className="font-mono text-xs text-muted-foreground">{filename}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => selectPreset(preset.id)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Resetar
+                </button>
+                <button
+                  onClick={handleRun}
+                  disabled={running}
+                  className="bg-brand inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-60"
+                >
+                  {running ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Play className="h-3.5 w-3.5" />
+                  )}
+                  Rodar
+                </button>
+              </div>
+            </div>
+            <div className="flex max-h-[60vh] min-h-[380px] overflow-auto bg-surface/60">
+              <pre
+                aria-hidden
+                className="shrink-0 border-r border-border px-3 py-3 text-right font-mono text-xs leading-6 text-muted-foreground/60 select-none"
+              >
+                {Array.from({ length: lineCount }, (_, i) => i + 1).join("\n")}
+              </pre>
+              <textarea
+                ref={taRef}
+                value={code}
+                spellCheck={false}
+                onChange={(e) => setCode(e.target.value)}
+                onKeyDown={onKeyDown}
+                className="min-h-[380px] w-full resize-none bg-transparent px-4 py-3 font-mono text-sm leading-6 text-foreground outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="card-soft overflow-hidden p-0">
+            <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+              <Terminal className="h-4 w-4 text-cyan" />
+              <span className="text-xs font-semibold">{isWeb ? "Pré-visualização" : "Saída"}</span>
+            </div>
+            {isWeb ? (
+              <iframe
+                title="Pré-visualização"
+                sandbox="allow-scripts allow-modals"
+                srcDoc={srcDoc}
+                className="h-[60vh] min-h-[380px] w-full bg-white"
+              />
+            ) : (
+              <div className="max-h-[60vh] min-h-[380px] overflow-auto px-4 py-3">
+                {running && <p className="text-sm text-muted-foreground">Executando…</p>}
+                {!running && !result && (
+                  <p className="text-sm text-muted-foreground">
+                    Clique em “Rodar” para executar seu código.
+                  </p>
+                )}
+                {result?.error && (
+                  <pre className="font-mono text-sm whitespace-pre-wrap text-danger">
+                    {result.error}
+                  </pre>
+                )}
+                {result && !result.error && (
+                  <>
+                    <pre className="font-mono text-sm whitespace-pre-wrap text-foreground">
+                      {result.output}
+                    </pre>
+                    {result.stderr && (
+                      <pre className="mt-3 font-mono text-sm whitespace-pre-wrap text-danger">
+                        {result.stderr}
+                      </pre>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
