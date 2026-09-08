@@ -1,5 +1,6 @@
 import type { Course } from "./courses";
 import { findTopic, type QuizQuestion, type Topic } from "./lessonLibrary";
+import { interactiveLesson, type GuidedLesson } from "./interactiveLessons";
 
 export type Exercise = {
   prompt: string;
@@ -14,6 +15,7 @@ export type LessonContent = {
   example: { language: string; code: string; explain: string };
   quiz: QuizQuestion[];
   exercise: Exercise;
+  guided: GuidedLesson | undefined;
 };
 
 const webLangs = new Set(["html", "css"]);
@@ -29,6 +31,7 @@ const fallbackStarters: Record<string, string> = {
 
 export function lessonContent(course: Course, moduleTitle: string, lessonTitle: string): LessonContent {
   const topic = findTopic(lessonTitle, moduleTitle, course.lang);
+  const guided = interactiveLesson(course.slug, lessonTitle);
 
   const sections = [
     { title: "Visão geral", body: topic.intro, kind: "overview" as const },
@@ -44,7 +47,14 @@ export function lessonContent(course: Course, moduleTitle: string, lessonTitle: 
     },
   ];
 
-  const exercise: Exercise = webLangs.has(course.lang)
+  const exercise: Exercise = guided
+    ? {
+        prompt: guided.challenges[0]?.instruction ?? "Imprima Olá, mundo!",
+        starter: guided.challenges[0]?.starter ?? `print("Olá, mundo!")`,
+        expected: guided.challenges[0]?.expected ?? "Olá, mundo!",
+        language: course.lang,
+      }
+    : webLangs.has(course.lang)
     ? {
         prompt: `Prática guiada: edite o exemplo abaixo aplicando "${lessonTitle}" e clique em Rodar para ver o resultado ao vivo.`,
         starter: topic.example.language === "html" ? topic.example.code : `<!doctype html>\n<html lang="pt-BR">\n  <head><meta charset="utf-8" /></head>\n  <body style="font-family:system-ui;padding:2rem">\n    <h1>${lessonTitle}</h1>\n  </body>\n</html>`,
@@ -60,12 +70,12 @@ export function lessonContent(course: Course, moduleTitle: string, lessonTitle: 
         }
       : {
           prompt: `Desafio: faça o programa imprimir exatamente 15 (a soma de 1 a 5) usando o que você viu em "${lessonTitle}".`,
-          starter: fallbackStarters[course.lang] ?? fallbackStarters["python"]!,
+          starter: fallbackStarters[course.lang] ?? fallbackStarters["python"] ?? "",
           expected: "15",
           language: course.lang,
         };
 
-  return { topic, sections, example: topic.example, quiz: topic.quiz, exercise };
+  return { topic, sections, example: topic.example, quiz: topic.quiz, exercise, guided };
 }
 
 // Compatibilidade com chamadas antigas
