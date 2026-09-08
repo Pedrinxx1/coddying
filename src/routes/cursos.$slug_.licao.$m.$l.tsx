@@ -201,9 +201,10 @@ function LessonPage() {
       const out = (res.output || res.stderr || res.error || "").trim();
       setOutput(out);
       const normalizedOutput = out.replace(/\r/g, "").trim();
-      const correct = activeExpected === "\n"
+      const hasPlaceholder = /____|\.\.\.|# crie|# complete/i.test(code);
+      const correct = !hasPlaceholder && (activeExpected === "\n"
         ? normalizedOutput.split("\n").filter(Boolean).length >= 2
-        : normalizedOutput.includes(activeExpected ?? "");
+        : normalizedOutput.includes(activeExpected ?? ""));
       setStatus(correct ? "ok" : "fail");
       if (correct && guided) setCompletedChallenges((old) => new Set(old).add(challengeIndex));
     } catch {
@@ -251,7 +252,8 @@ function LessonPage() {
   }
 
   const guidedTotal = guided ? guided.steps.filter((step) => step.check).length + guided.challenges.length : 0;
-  const guidedCompleted = Object.keys(guidedAnswers).length + completedChallenges.size;
+  const guidedCorrect = guided ? guided.steps.filter((step, index) => step.check && guidedAnswers[index] === step.check.answer).length : 0;
+  const guidedCompleted = guidedCorrect + completedChallenges.size;
   const guidedReady = !guided || guidedCompleted === guidedTotal;
 
   return (
@@ -468,7 +470,7 @@ function LessonPage() {
               </div>
             </section>}
 
-            <section className="card-soft p-5 sm:p-6">
+            {!guided && <section className="card-soft p-5 sm:p-6">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                 <h2 className="font-display text-base font-bold sm:text-lg">Quiz rápido</h2>
                 <span className="shrink-0 text-xs text-muted-foreground">
@@ -560,7 +562,7 @@ function LessonPage() {
                   </button>
                 </div>
               )}
-            </section>
+            </section>}
 
             <button
               onClick={toggleDone}

@@ -110,7 +110,7 @@ print("Olá, mundo!)`,
     {
       title: "2. Personalize",
       instruction: "Troque o texto para se apresentar em uma frase. A saída deve começar com: Meu nome é",
-      starter: `print("Meu nome é ")`,
+      starter: `print("____")`,
       expected: "Meu nome é",
       hint: "Escreva seu nome depois do espaço, ainda dentro das aspas.",
     },
