@@ -146,7 +146,7 @@ const presets: Preset[] = [
     id: "bash",
     label: "Bash",
     ext: "sh",
-    piston: "bash script",
+    piston: "bash",
     sample: `echo "Olá, Codding!"\nfor i in 1 2 3; do echo "linha $i"; done`,
   },
   {
