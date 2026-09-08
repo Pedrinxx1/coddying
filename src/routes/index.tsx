@@ -584,6 +584,105 @@ function Index() {
         </div>
       </section>
 
+      {/* Tutor de IA (inspirado no Bugsy, do Coddy) */}
+      <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
+        <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div>
+            <span className="text-sm font-semibold text-cyan">Seu copiloto de estudos</span>
+            <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight">
+              Travou? O <span className="text-gradient">Bitsy</span> te ajuda
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Nosso tutor de IA lê o seu código e o erro que você encontrou. Ele explica o que
+              aconteceu e dá dicas progressivas — nunca entrega a resposta pronta, pra você
+              aprender de verdade.
+            </p>
+            <ul className="mt-6 space-y-3">
+              {[
+                "Explica erros em linguagem simples",
+                "Dicas em camadas: da mais sutil à mais direta",
+                "Disponível em todos os exercícios, 24h",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-3 text-sm">
+                  <Check className="h-4 w-4 shrink-0 text-success" /> {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="card-soft overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-border px-5 py-3">
+              <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
+              <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
+              <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
+              <span className="ml-2 text-xs text-muted-foreground">bitsy — tutor de IA</span>
+            </div>
+            <div className="space-y-4 p-5 text-sm">
+              <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-secondary px-4 py-3">
+                Por que meu loop roda uma vez a mais do que devia?
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="bg-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-primary-foreground">
+                  <Bot className="h-4 w-4" />
+                </span>
+                <div className="w-fit max-w-[85%] rounded-2xl rounded-tl-sm border border-border bg-surface-2 px-4 py-3 text-muted-foreground">
+                  Boa pergunta! Repare na condição do seu{" "}
+                  <code className="font-mono text-cyan">for</code>: você usou{" "}
+                  <code className="font-mono text-cyan">&lt;=</code>. O que acontece quando o
+                  contador chega exatamente no tamanho da lista?
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pl-11 text-xs text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-cyan" /> Bitsy te guia até a resposta, nunca
+                entrega de graça.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Depoimentos */}
+      <section className="border-y border-border bg-surface/40">
+        <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
+          <div className="text-center">
+            <h2 className="font-display text-4xl font-extrabold tracking-tight">
+              Quem aprende, recomenda
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Histórias de quem saiu do zero com o Codding.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
+            {testimonials.map((t) => (
+              <figure key={t.name} className="card-soft flex flex-col p-6">
+                <Quote className="h-5 w-5 text-cyan" />
+                <blockquote className="mt-4 flex-1 text-sm text-muted-foreground">
+                  "{t.text}"
+                </blockquote>
+                <figcaption className="mt-5 border-t border-border pt-4">
+                  <p className="font-display text-sm font-bold">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-3xl px-4 py-24 sm:px-6">
+        <div className="text-center">
+          <h2 className="font-display text-4xl font-extrabold tracking-tight">
+            Perguntas Frequentes
+          </h2>
+        </div>
+        <div className="mt-10 space-y-3">
+          {faqs.map((f) => (
+            <FaqItem key={f.q} q={f.q} a={f.a} />
+          ))}
+        </div>
+      </section>
+
       {/* CTA */}
       <section id="cta" className="grid-bg">
         <div className="mx-auto max-w-3xl px-4 py-28 text-center sm:px-6">
