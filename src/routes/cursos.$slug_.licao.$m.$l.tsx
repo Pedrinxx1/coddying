@@ -19,7 +19,7 @@ import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
 import { completeLesson, uncompleteLesson } from "@/lib/learning";
 
-export const Route = createFileRoute("/cursos/$slug/licao/$m/$l")({
+export const Route = createFileRoute("/cursos/$slug_/licao/$m/$l")({
   loader: ({ params }) => {
     const course = getCourse(params.slug);
     const m = Number(params.m);
