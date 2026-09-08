@@ -24,7 +24,7 @@ export type GuidedLesson = {
 };
 
 const helloWorld: GuidedLesson = {
-  duration: "25 min",
+  duration: "45–60 min",
   level: "Do zero",
   objectives: [
     "Executar seu primeiro programa em Python",
@@ -121,6 +121,16 @@ print("Olá, mundo!)`,
 # crie o segundo print abaixo`,
       expected: "\n",
       hint: "Cada chamada de print cria uma linha no console.",
+    },
+    {
+      title: "4. Mini projeto",
+      instruction: "Crie um cartão de apresentação com pelo menos 3 linhas: nome, o que quer aprender e uma frase de motivação.",
+      starter: `print("--------------------")
+print("Nome: ")
+# complete seu cartão
+print("--------------------")`,
+      expected: "\n",
+      hint: "Adicione dois prints entre as linhas decorativas. Escreva mensagens completas entre aspas.",
     },
   ],
   recap: [

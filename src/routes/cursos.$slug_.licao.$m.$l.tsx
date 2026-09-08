@@ -121,6 +121,7 @@ function LessonPage() {
   const [indice, setIndice] = useState(false);
   const [guidedAnswers, setGuidedAnswers] = useState<Record<number, number>>({});
   const [challengeIndex, setChallengeIndex] = useState(0);
+  const [completedChallenges, setCompletedChallenges] = useState<Set<number>>(new Set());
   const [showHint, setShowHint] = useState(false);
   const run = useServerFn(runCode);
 
@@ -134,6 +135,7 @@ function LessonPage() {
     setIndice(false);
     setGuidedAnswers({});
     setChallengeIndex(0);
+    setCompletedChallenges(new Set());
     setShowHint(false);
   }, [ex]);
 
@@ -203,6 +205,7 @@ function LessonPage() {
         ? normalizedOutput.split("\n").filter(Boolean).length >= 2
         : normalizedOutput.includes(activeExpected ?? "");
       setStatus(correct ? "ok" : "fail");
+      if (correct && guided) setCompletedChallenges((old) => new Set(old).add(challengeIndex));
     } catch {
       setOutput("Não foi possível executar agora. Tente de novo.");
       setStatus("fail");
@@ -212,6 +215,7 @@ function LessonPage() {
   }
 
   async function toggleDone() {
+    if (guided && (Object.keys(guidedAnswers).length < guided.steps.filter((step) => step.check).length || completedChallenges.size < guided.challenges.length)) return;
     if (!user) {
       navigate({ to: "/entrar", search: {} });
       return;
@@ -245,6 +249,10 @@ function LessonPage() {
     ]);
     setPergunta("");
   }
+
+  const guidedTotal = guided ? guided.steps.filter((step) => step.check).length + guided.challenges.length : 0;
+  const guidedCompleted = Object.keys(guidedAnswers).length + completedChallenges.size;
+  const guidedReady = !guided || guidedCompleted === guidedTotal;
 
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-0">
@@ -331,6 +339,10 @@ function LessonPage() {
                     </li>
                   ))}
                 </ul>
+                <div className="mt-5 flex items-center gap-3">
+                  <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2"><div className="h-full bg-brand transition-all" style={{ width: `${guidedTotal ? (guidedCompleted / guidedTotal) * 100 : 0}%` }} /></div>
+                  <span className="shrink-0 text-xs font-bold text-cyan">{guidedCompleted}/{guidedTotal} atividades</span>
+                </div>
               </div>
             </div>
           </section>
@@ -402,7 +414,7 @@ function LessonPage() {
               ))}
             </div>}
 
-            <section className="card-soft p-5 sm:p-6">
+            {!guided && <section className="card-soft p-5 sm:p-6">
               <div className="flex items-center gap-2">
                 <PlayCircle className="h-4 w-4 shrink-0 text-violet" />
                 <h2 className="font-display text-base font-bold sm:text-lg">Videoaulas sobre este tema</h2>
@@ -428,7 +440,7 @@ function LessonPage() {
                   </a>
                 ))}
               </div>
-            </section>
+            </section>}
 
             {!guided && <section className="card-soft overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
@@ -552,12 +564,13 @@ function LessonPage() {
 
             <button
               onClick={toggleDone}
+              disabled={!guidedReady}
               className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-colors ${
                 done ? "border border-success/50 text-success" : "bg-brand text-primary-foreground"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-50`}
             >
               {done ? <CheckCircle2 className="h-4 w-4" /> : <CircleDashed className="h-4 w-4" />}
-              {done ? "Lição concluída" : user ? "Marcar como concluída" : "Entrar para salvar progresso"}
+              {done ? "Lição concluída" : !guidedReady ? `Complete as atividades (${guidedCompleted}/${guidedTotal})` : user ? "Marcar como concluída" : "Entrar para salvar progresso"}
             </button>
 
             {unlocked.length > 0 && (
@@ -575,7 +588,7 @@ function LessonPage() {
                 {guided && (
                   <div className="mt-4 grid grid-cols-3 gap-2" aria-label="Desafios da aula">
                     {guided.challenges.map((challenge, index) => (
-                      <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus("idle"); setOutput(null); setShowHint(false); }} className="min-w-0 px-2">{index + 1}</Button>
+                      <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus(completedChallenges.has(index) ? "ok" : "idle"); setOutput(null); setShowHint(false); }} className="min-w-0 px-2">{completedChallenges.has(index) ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</Button>
                     ))}
                   </div>
                 )}
@@ -755,9 +768,10 @@ function LessonPage() {
           )}
           <button
             onClick={toggleDone}
+            disabled={!guidedReady}
             className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-xs font-bold ${
               done ? "border border-success/50 text-success" : "bg-brand text-primary-foreground"
-            }`}
+            } disabled:opacity-50`}
           >
             {done ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <CircleDashed className="h-4 w-4 shrink-0" />}
             <span className="truncate">{done ? "Concluída" : "Concluir lição"}</span>
