@@ -84,13 +84,17 @@ export const runCode = createServerFn({ method: "POST" })
         };
       }
 
-      const res = await fetch(`${JUDGE0}/submissions?base64_encoded=false&wait=true`, {
+      const enc = (s: string) => Buffer.from(s, "utf-8").toString("base64");
+      const dec = (s?: string | null) =>
+        s ? Buffer.from(s, "base64").toString("utf-8") : "";
+
+      const res = await fetch(`${JUDGE0}/submissions?base64_encoded=true&wait=true`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           language_id: lang.id,
-          source_code: data.code,
-          stdin: data.stdin ?? "",
+          source_code: enc(data.code),
+          stdin: enc(data.stdin ?? ""),
           cpu_time_limit: 10,
         }),
       });
@@ -107,8 +111,9 @@ export const runCode = createServerFn({ method: "POST" })
         status?: { id: number; description: string };
       };
 
-      const out = [body.compile_output, body.stdout].filter(Boolean).join("\n").trim();
-      const err = [body.stderr, body.message].filter(Boolean).join("\n").trim();
+      const out = [dec(body.compile_output), dec(body.stdout)].filter(Boolean).join("\n").trim();
+      const err = [dec(body.stderr), dec(body.message)].filter(Boolean).join("\n").trim();
+
 
       return {
         ok: body.status?.id === 3,
