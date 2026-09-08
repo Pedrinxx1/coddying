@@ -5,6 +5,7 @@ import {
   levelEmoji,
   totalLessons,
 } from "@/data/courses";
+import { useSession } from "@/hooks/useSession";
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -264,6 +265,7 @@ function StatCard({ item }: { item: (typeof stats)[number] }) {
 
 function Index() {
   const [open, setOpen] = useState(false);
+  const { user } = useSession();
 
   return (
     <div className="min-h-screen bg-background">
@@ -308,18 +310,30 @@ function Index() {
                 ⌘K
               </kbd>
             </div>
-            <a
-              href="#cta"
-              className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:block"
-            >
-              Entrar
-            </a>
-            <a
-              href="#cta"
-              className="bg-brand glow rounded-xl px-4 py-2 text-sm font-bold whitespace-nowrap text-primary-foreground transition-transform hover:scale-[1.03]"
-            >
-              Começar Grátis
-            </a>
+            {user ? (
+              <Link
+                to="/painel"
+                className="bg-brand glow rounded-xl px-4 py-2 text-sm font-bold whitespace-nowrap text-primary-foreground transition-transform hover:scale-[1.03]"
+              >
+                Meu painel
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/entrar"
+                  className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:block"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  to="/entrar"
+                  search={{ modo: "cadastro" }}
+                  className="bg-brand glow rounded-xl px-4 py-2 text-sm font-bold whitespace-nowrap text-primary-foreground transition-transform hover:scale-[1.03]"
+                >
+                  Começar Grátis
+                </Link>
+              </>
+            )}
             <button
               aria-label="Abrir menu"
               onClick={() => setOpen((v) => !v)}
