@@ -586,7 +586,7 @@ function LessonPage() {
                 <h2 className="font-display text-base font-bold sm:text-lg">{activeChallenge?.title ?? "Exercício"}</h2>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">{activeChallenge?.instruction ?? ex.prompt}</p>
                 {guided && (
-                  <div className="mt-4 grid grid-cols-3 gap-2" aria-label="Desafios da aula">
+                  <div className="mt-4 grid grid-cols-4 gap-2" aria-label="Desafios da aula">
                     {guided.challenges.map((challenge, index) => (
                       <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus(completedChallenges.has(index) ? "ok" : "idle"); setOutput(null); setShowHint(false); }} className="min-w-0 px-2">{completedChallenges.has(index) ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</Button>
                     ))}
