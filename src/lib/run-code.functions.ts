@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+const JUDGE0 = "https://ce.judge0.com";
+
 const schema = z.object({
   language: z.string().min(1),
   code: z.string(),
@@ -12,76 +14,84 @@ export type RunResult = {
   output: string;
   stderr?: string;
   error?: string;
+  status?: string;
+  time?: string | null;
 };
 
-type Compiler = { name: string; language: string; "display-name"?: string };
+type Lang = { id: number; name: string };
 
-let cache: { at: number; list: Compiler[] } | null = null;
+let cache: { at: number; list: Lang[] } | null = null;
 
-async function getCompilers(): Promise<Compiler[]> {
+async function getLanguages(): Promise<Lang[]> {
   if (cache && Date.now() - cache.at < 30 * 60 * 1000) return cache.list;
-  const res = await fetch("https://wandbox.org/api/list.json");
+  const res = await fetch(`${JUDGE0}/languages`);
   if (!res.ok) return [];
-  const list = (await res.json()) as Compiler[];
+  const list = (await res.json()) as Lang[];
   cache = { at: Date.now(), list };
   return list;
 }
 
-function resolveCompiler(input: string, list: Compiler[]) {
-  const q = input.trim().toLowerCase();
-  const exact = list.find((c) => c.name.toLowerCase() === q);
-  if (exact) return exact.name;
-  const byLang = list.find((c) => c.language.toLowerCase() === q);
-  if (byLang) return byLang.name;
-  const alias: Record<string, string> = {
-    js: "javascript",
-    ts: "typescript",
-    py: "python",
-    "c++": "c++",
-    cpp: "c++",
-    cs: "c#",
-    csharp: "c#",
-    sh: "bash script",
-    bash: "bash script",
-    shell: "bash script",
-    sql: "sql",
-    sqlite: "sql",
-    node: "javascript",
-  };
-  const mapped = alias[q];
-  if (mapped) {
-    const m = list.find((c) => c.language.toLowerCase() === mapped);
-    if (m) return m.name;
-  }
-  const partial = list.find(
-    (c) => c.language.toLowerCase().startsWith(q) || c.name.toLowerCase().startsWith(q),
-  );
-  return partial?.name;
+const aliases: Record<string, string> = {
+  js: "javascript",
+  node: "javascript",
+  "node.js": "javascript",
+  ts: "typescript",
+  py: "python",
+  py3: "python",
+  python3: "python",
+  cpp: "c++",
+  "c#": "c#",
+  cs: "c#",
+  csharp: "c#",
+  sh: "bash",
+  shell: "bash",
+  golang: "go",
+  sqlite: "sql",
+  sqlite3: "sql",
+  kt: "kotlin",
+  rb: "ruby",
+  rs: "rust",
+  pl: "perl",
+  hs: "haskell",
+  ex: "elixir",
+  "objective-c": "objective-c",
+};
+
+function resolveLanguage(input: string, list: Lang[]) {
+  const raw = input.trim().toLowerCase();
+  const q = aliases[raw] ?? raw;
+  const matches = list.filter((l) => {
+    const base = l.name.toLowerCase().split("(")[0]!.trim();
+    return base === q;
+  });
+  const fallback = list.filter((l) => l.name.toLowerCase().includes(q));
+  const pool = matches.length ? matches : fallback;
+  if (!pool.length) return undefined;
+  return pool.reduce((a, b) => (b.id > a.id ? b : a));
 }
 
 export const runCode = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => schema.parse(data))
   .handler(async ({ data }): Promise<RunResult> => {
     try {
-      const list = await getCompilers();
-      const compiler = resolveCompiler(data.language, list);
-      if (!compiler) {
+      const list = await getLanguages();
+      const lang = resolveLanguage(data.language, list);
+      if (!lang) {
         return {
           ok: false,
           output: "",
-          error: `Linguagem "${data.language}" não disponível para execução.`,
+          error: `Linguagem "${data.language}" não está disponível para execução.`,
         };
       }
 
-      const res = await fetch("https://wandbox.org/api/compile.json", {
+      const res = await fetch(`${JUDGE0}/submissions?base64_encoded=false&wait=true`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          compiler,
-          code: data.code,
+          language_id: lang.id,
+          source_code: data.code,
           stdin: data.stdin ?? "",
-          "compiler-option-raw": "",
-          save: false,
+          cpu_time_limit: 10,
         }),
       });
 
@@ -89,20 +99,23 @@ export const runCode = createServerFn({ method: "POST" })
       if (!res.ok) return { ok: false, output: "", error: text.slice(0, 500) };
 
       const body = JSON.parse(text) as {
-        program_output?: string;
-        program_error?: string;
-        compiler_output?: string;
-        compiler_error?: string;
-        status?: string;
+        stdout?: string | null;
+        stderr?: string | null;
+        compile_output?: string | null;
+        message?: string | null;
+        time?: string | null;
+        status?: { id: number; description: string };
       };
 
-      const out = [body.compiler_output, body.program_output].filter(Boolean).join("");
-      const err = [body.compiler_error, body.program_error].filter(Boolean).join("");
+      const out = [body.compile_output, body.stdout].filter(Boolean).join("\n").trim();
+      const err = [body.stderr, body.message].filter(Boolean).join("\n").trim();
 
       return {
-        ok: body.status === "0",
-        output: out.trim() || (err ? "" : "(sem saída)"),
-        stderr: err.trim(),
+        ok: body.status?.id === 3,
+        output: out || (err ? "" : "(sem saída)"),
+        stderr: err,
+        status: `${lang.name} • ${body.status?.description ?? ""}`,
+        time: body.time ?? null,
       };
     } catch (e) {
       return { ok: false, output: "", error: e instanceof Error ? e.message : "Falha ao executar" };
@@ -110,6 +123,6 @@ export const runCode = createServerFn({ method: "POST" })
   });
 
 export const listRuntimes = createServerFn({ method: "GET" }).handler(async () => {
-  const list = await getCompilers();
-  return [...new Set(list.map((c) => c.language))].sort();
+  const list = await getLanguages();
+  return list.map((l) => l.name).sort();
 });
