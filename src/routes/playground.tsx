@@ -471,9 +471,9 @@ function Playground() {
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <div className="card-soft overflow-hidden p-0">
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-              <span className="font-mono text-xs text-muted-foreground">{filename}</span>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">{filename}</span>
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => selectPreset(preset.id)}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
@@ -515,7 +515,7 @@ function Playground() {
                 </button>
               </div>
             </div>
-            <div className="flex max-h-[60vh] min-h-[380px] overflow-auto bg-surface/60">
+            <div className="flex max-h-[60vh] min-h-[280px] overflow-auto bg-surface/60 sm:min-h-[380px]">
               <pre
                 aria-hidden
                 className="shrink-0 border-r border-border px-3 py-3 text-right font-mono text-xs leading-6 text-muted-foreground/60 select-none"
@@ -528,7 +528,7 @@ function Playground() {
                 spellCheck={false}
                 onChange={(e) => setCode(e.target.value)}
                 onKeyDown={onKeyDown}
-                className="min-h-[380px] w-full resize-none bg-transparent px-4 py-3 font-mono text-sm leading-6 text-foreground outline-none"
+                className="min-h-[280px] w-full resize-none bg-transparent px-4 py-3 font-mono text-[13px] leading-6 text-foreground outline-none sm:min-h-[380px] sm:text-sm"
               />
             </div>
           </div>
