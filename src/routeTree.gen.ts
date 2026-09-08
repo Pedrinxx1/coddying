@@ -10,19 +10,37 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as PlaygroundRouteImport } from './routes/playground'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as CursosIndexRouteImport } from './routes/cursos.index'
 import { Route as CursosSlugRouteImport } from './routes/cursos.$slug'
+import { Route as CursosSlugLicaoMLRouteImport } from './routes/cursos.$slug.licao.$m.$l'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntrarRoute = EntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
   path: '/playground',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const CursosIndexRoute = CursosIndexRouteImport.update({
   id: '/cursos/',
@@ -34,38 +52,78 @@ const CursosSlugRoute = CursosSlugRouteImport.update({
   path: '/cursos/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CursosSlugLicaoMLRoute = CursosSlugLicaoMLRouteImport.update({
+  id: '/licao/$m/$l',
+  path: '/licao/$m/$l',
+  getParentRoute: () => CursosSlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/entrar': typeof EntrarRoute
   '/playground': typeof PlaygroundRoute
-  '/cursos/$slug': typeof CursosSlugRoute
+  '/painel': typeof AuthenticatedPainelRoute
+  '/cursos/$slug': typeof CursosSlugRouteWithChildren
   '/cursos/': typeof CursosIndexRoute
+  '/cursos/$slug/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/entrar': typeof EntrarRoute
   '/playground': typeof PlaygroundRoute
-  '/cursos/$slug': typeof CursosSlugRoute
+  '/painel': typeof AuthenticatedPainelRoute
+  '/cursos/$slug': typeof CursosSlugRouteWithChildren
   '/cursos': typeof CursosIndexRoute
+  '/cursos/$slug/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/entrar': typeof EntrarRoute
   '/playground': typeof PlaygroundRoute
-  '/cursos/$slug': typeof CursosSlugRoute
+  '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/cursos/$slug': typeof CursosSlugRouteWithChildren
   '/cursos/': typeof CursosIndexRoute
+  '/cursos/$slug/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/playground' | '/cursos/$slug' | '/cursos/'
+  fullPaths:
+    | '/'
+    | '/entrar'
+    | '/playground'
+    | '/painel'
+    | '/cursos/$slug'
+    | '/cursos/'
+    | '/cursos/$slug/licao/$m/$l'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/playground' | '/cursos/$slug' | '/cursos'
-  id: '__root__' | '/' | '/playground' | '/cursos/$slug' | '/cursos/'
+  to:
+    | '/'
+    | '/entrar'
+    | '/playground'
+    | '/painel'
+    | '/cursos/$slug'
+    | '/cursos'
+    | '/cursos/$slug/licao/$m/$l'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/entrar'
+    | '/playground'
+    | '/_authenticated/painel'
+    | '/cursos/$slug'
+    | '/cursos/'
+    | '/cursos/$slug/licao/$m/$l'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  EntrarRoute: typeof EntrarRoute
   PlaygroundRoute: typeof PlaygroundRoute
-  CursosSlugRoute: typeof CursosSlugRoute
+  CursosSlugRoute: typeof CursosSlugRouteWithChildren
   CursosIndexRoute: typeof CursosIndexRoute
 }
 
@@ -78,12 +136,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entrar': {
+      id: '/entrar'
+      path: '/entrar'
+      fullPath: '/entrar'
+      preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/playground': {
       id: '/playground'
       path: '/playground'
       fullPath: '/playground'
       preLoaderRoute: typeof PlaygroundRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/painel': {
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/cursos/': {
       id: '/cursos/'
@@ -99,13 +178,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CursosSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cursos/$slug/licao/$m/$l': {
+      id: '/cursos/$slug/licao/$m/$l'
+      path: '/licao/$m/$l'
+      fullPath: '/cursos/$slug/licao/$m/$l'
+      preLoaderRoute: typeof CursosSlugLicaoMLRouteImport
+      parentRoute: typeof CursosSlugRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+interface CursosSlugRouteChildren {
+  CursosSlugLicaoMLRoute: typeof CursosSlugLicaoMLRoute
+}
+
+const CursosSlugRouteChildren: CursosSlugRouteChildren = {
+  CursosSlugLicaoMLRoute: CursosSlugLicaoMLRoute,
+}
+
+const CursosSlugRouteWithChildren = CursosSlugRoute._addFileChildren(
+  CursosSlugRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  EntrarRoute: EntrarRoute,
   PlaygroundRoute: PlaygroundRoute,
-  CursosSlugRoute: CursosSlugRoute,
+  CursosSlugRoute: CursosSlugRouteWithChildren,
   CursosIndexRoute: CursosIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,10 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Loader2, Play, RotateCcw, Terminal } from "lucide-react";
+import { Loader2, Play, RotateCcw, Save, Terminal } from "lucide-react";
 import { listRuntimes, runCode, type RunResult } from "@/lib/run-code.functions";
+import { SiteHeader } from "@/components/SiteHeader";
+import { useSession } from "@/hooks/useSession";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/playground")({
+  validateSearch: (search: Record<string, unknown>): { snippet?: string | undefined } =>
+    typeof search["snippet"] === "string" ? { snippet: search["snippet"] } : {},
+
   head: () => ({
     meta: [
       { title: "Playground — escreva e rode código em qualquer linguagem | Codding" },
@@ -222,6 +228,10 @@ function Playground() {
   const [running, setRunning] = useState(false);
   const [srcDoc, setSrcDoc] = useState(initial.id === "web" ? initial.sample : "");
   const [runtimes, setRuntimes] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const { user } = useSession();
+  const { snippet } = Route.useSearch();
 
   const run = useServerFn(runCode);
   const fetchRuntimes = useServerFn(listRuntimes);
@@ -232,6 +242,49 @@ function Playground() {
       .then((rs) => setRuntimes(rs))
       .catch(() => undefined);
   }, [fetchRuntimes]);
+
+  useEffect(() => {
+    if (!snippet || !user) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("snippets")
+        .select("language, filename, code")
+        .eq("id", snippet)
+        .maybeSingle();
+      {
+        if (!data) return;
+        setCode(data.code);
+        setFilename(data.filename);
+        const p = presets.find((x) => x.id === data.language || x.piston === data.language);
+        if (p) {
+          setPreset(p);
+          if (p.id === "web") setSrcDoc(data.code);
+        } else {
+          setCustomLang(data.language);
+        }
+      }
+    })();
+  }, [snippet, user]);
+
+  async function saveSnippet() {
+    if (!user) return;
+    setSaving(true);
+    const language = customLang.trim() || preset.piston || preset.id;
+    const { error } = await supabase.from("snippets").insert({
+      user_id: user.id,
+      title: filename,
+      language,
+      filename,
+      code,
+    });
+    if (!error) {
+      await supabase.from("achievements").insert({ user_id: user.id, code: "first_snippet" });
+    }
+    setSavedMsg(error ? "Não foi possível salvar." : "Código salvo no seu painel!");
+    setSaving(false);
+    setTimeout(() => setSavedMsg(null), 3000);
+  }
+
 
 
   const isWeb = preset.id === "web" && !customLang;
@@ -286,23 +339,8 @@ function Playground() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="bg-brand flex h-9 w-9 items-center justify-center rounded-xl font-mono text-sm font-bold text-primary-foreground">
-              {"</>"}
-            </span>
-            <span className="font-display text-lg font-extrabold tracking-tight">Codding</span>
-          </Link>
-          <span className="hidden text-sm text-muted-foreground sm:block">/ Playground</span>
-          <Link
-            to="/cursos"
-            className="ml-auto inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold transition-colors hover:border-blue hover:bg-surface"
-          >
-            <ArrowLeft className="h-4 w-4" /> Cursos
-          </Link>
-        </div>
-      </header>
+      <SiteHeader crumb="Playground" />
+
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
@@ -312,6 +350,13 @@ function Playground() {
           Escreva e execute código em dezenas de linguagens. Escolha qualquer nome e extensão de
           arquivo — ou digite a linguagem que quiser. Atalho: Ctrl/⌘ + Enter para rodar.
         </p>
+        {savedMsg && (
+          <p className="mt-3 inline-flex rounded-xl border border-cyan/50 px-4 py-2 text-sm text-cyan">
+            {savedMsg}
+          </p>
+        )}
+
+
 
         <div className="mt-6 flex flex-wrap gap-2">
           {presets.map((p) => (
@@ -376,6 +421,27 @@ function Playground() {
                 >
                   <RotateCcw className="h-3.5 w-3.5" /> Resetar
                 </button>
+                {user ? (
+                  <button
+                    onClick={saveSnippet}
+                    disabled={saving}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-60"
+                  >
+                    {saving ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
+                    Salvar
+                  </button>
+                ) : (
+                  <Link
+                    to="/entrar"
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    Entrar p/ salvar
+                  </Link>
+                )}
                 <button
                   onClick={handleRun}
                   disabled={running}
@@ -429,7 +495,7 @@ function Playground() {
                   </p>
                 )}
                 {result?.error && (
-                  <pre className="font-mono text-sm whitespace-pre-wrap text-danger">
+                  <pre className="font-mono text-sm whitespace-pre-wrap text-destructive">
                     {result.error}
                   </pre>
                 )}
@@ -439,7 +505,7 @@ function Playground() {
                       {result.output}
                     </pre>
                     {result.stderr && (
-                      <pre className="mt-3 font-mono text-sm whitespace-pre-wrap text-danger">
+                      <pre className="mt-3 font-mono text-sm whitespace-pre-wrap text-destructive">
                         {result.stderr}
                       </pre>
                     )}

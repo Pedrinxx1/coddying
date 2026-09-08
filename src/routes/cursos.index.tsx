@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Clock, Layers, Search, Terminal } from "lucide-react";
+import { Clock, Layers, Search } from "lucide-react";
 import { countLessons, courses, levelEmoji, levels, totalLessons, type Level } from "@/data/courses";
+import { SiteHeader } from "@/components/SiteHeader";
 
 export const Route = createFileRoute("/cursos/")({
   head: () => ({
@@ -53,23 +54,8 @@ function CoursesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="bg-brand flex h-9 w-9 items-center justify-center rounded-xl font-mono text-sm font-bold text-primary-foreground">
-              {"</>"}
-            </span>
-            <span className="font-display text-lg font-extrabold tracking-tight">Codding</span>
-          </Link>
-          <span className="hidden text-sm text-muted-foreground sm:block">/ Cursos</span>
-          <Link
-            to="/playground"
-            className="bg-brand ml-auto inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold whitespace-nowrap text-primary-foreground"
-          >
-            <Terminal className="h-4 w-4" /> Playground
-          </Link>
-        </div>
-      </header>
+      <SiteHeader crumb="Cursos" />
+
 
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
         <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
