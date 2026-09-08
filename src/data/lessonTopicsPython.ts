@@ -4,7 +4,7 @@ export const pythonTopics: Topic[] = [
   {
     id: "python-arquivos-json",
     title: "Arquivos, caminhos e JSON",
-    keys: ["arquivo", "arquivos", "json", "csv", "pathlib", "caminho"],
+    keys: ["arquivo", "arquivos", "json", "csv", "pathlib", "caminho", "importador de dados"],
     langs: ["python"],
     intro: "Programas úteis precisam guardar e recuperar informações. Em Python, arquivos devem ser abertos com contexto, texto precisa de uma codificação explícita e JSON deve ser convertido entre objetos Python e texto antes de ser salvo.",
     deep: [
@@ -30,7 +30,7 @@ export const pythonTopics: Topic[] = [
   {
     id: "python-pacotes-ambiente",
     title: "Módulos, pacotes e ambientes isolados",
-    keys: ["modulo", "modulos", "pacote", "pacotes", "pip", "virtualenv", "venv", "pyproject", "import"],
+    keys: ["modulo", "modulos", "pacote", "pacotes", "pip", "virtualenv", "venv", "pyproject", "import", "empacotamento", "publicacao"],
     langs: ["python"],
     intro: "Módulos dividem o programa em arquivos importáveis; pacotes agrupam módulos relacionados; ambientes virtuais isolam as dependências de cada projeto para impedir conflitos entre versões.",
     deep: [
@@ -108,7 +108,7 @@ export const pythonTopics: Topic[] = [
   {
     id: "python-producao",
     title: "Python confiável em produção",
-    keys: ["logging", "log", "mypy", "profiling", "profile", "desempenho", "cli", "linha de comando", "asyncio", "assíncrono", "type hints"],
+    keys: ["logging", "log", "diagnostico", "mypy", "profiling", "profile", "otimizacao", "cli", "linha de comando", "asyncio", "concorrencia", "assincrono", "type hints"],
     langs: ["python"],
     intro: "Código de produção precisa ser observável, testável e previsível. Tipos documentam contratos, logs explicam o que ocorreu e medições mostram onde otimizar sem depender de adivinhação.",
     deep: [
