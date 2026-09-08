@@ -1,4 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  countLessons,
+  courses as allCourses,
+  levelEmoji,
+  totalLessons,
+} from "@/data/courses";
+
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -50,60 +57,24 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const nav = [
-  "Cursos",
-  "Trilhas",
-  "Exercícios",
-  "Prática",
-  "Playground",
-  "Vídeos",
-  "Projetos",
-  "Liga",
-  "Revisão",
+const nav: { label: string; to?: "/cursos" | "/playground"; href?: string }[] = [
+  { label: "Cursos", to: "/cursos" },
+  { label: "Trilhas", href: "#trilhas" },
+  { label: "Exercícios", href: "#beneficios" },
+  { label: "Playground", to: "/playground" },
+  { label: "Roadmap", href: "#roadmap" },
+  { label: "Tutor IA", href: "#bitsy" },
+  { label: "FAQ", href: "#faq" },
 ];
 
+
 const stats = [
-  { icon: BookOpen, value: 17, suffix: "+", label: "Cursos" },
-  { icon: Code2, value: 124, suffix: "", label: "Lições" },
+  { icon: BookOpen, value: allCourses.length, suffix: "", label: "Cursos" },
+  { icon: Code2, value: totalLessons, suffix: "", label: "Lições" },
   { icon: Trophy, value: 132, suffix: "+", label: "Exercícios" },
   { icon: Users, value: 500, suffix: "+", label: "Alunos" },
 ];
 
-const courses = [
-  {
-    tag: "Popular",
-    title: "HTML & CSS",
-    desc: "Fundamentos da web. Aprenda a estruturar e estilizar páginas modernas.",
-    lessons: "5 lições",
-    time: "8h",
-    level: "🌱 Iniciante",
-    icon: "</>",
-  },
-  {
-    title: "JavaScript",
-    desc: "A linguagem mais popular da web. Do básico ao avançado com projetos práticos.",
-    lessons: "6 lições",
-    time: "15h",
-    level: "🌱 Iniciante",
-    icon: "JS",
-  },
-  {
-    title: "React",
-    desc: "Crie interfaces modernas com componentes reutilizáveis e state management.",
-    lessons: "5 lições",
-    time: "12h",
-    level: "🚀 Intermediário",
-    icon: "⚛",
-  },
-  {
-    title: "TypeScript",
-    desc: "JavaScript com superpoderes. Tipagem estática para código mais seguro.",
-    lessons: "6 lições",
-    time: "10h",
-    level: "🚀 Intermediário",
-    icon: "TS",
-  },
-];
 
 const phases = [
   { n: "0", title: "Fase 0: Mentalidade", desc: "Perder o medo e entender lógica" },
@@ -307,16 +278,27 @@ function Index() {
           </a>
 
           <nav className="hidden flex-1 items-center gap-1 xl:flex">
-            {nav.map((n) => (
-              <a
-                key={n}
-                href="#cursos"
-                className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                {n}
-              </a>
-            ))}
+            {nav.map((n) =>
+              n.to ? (
+                <Link
+                  key={n.label}
+                  to={n.to}
+                  className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  {n.label}
+                </Link>
+              ) : (
+                <a
+                  key={n.label}
+                  href={n.href}
+                  className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  {n.label}
+                </a>
+              ),
+            )}
           </nav>
+
 
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-muted-foreground md:flex">
@@ -349,17 +331,29 @@ function Index() {
         </div>
         {open && (
           <div className="grid grid-cols-2 gap-1 border-t border-border px-4 py-3 xl:hidden">
-            {nav.map((n) => (
-              <a
-                key={n}
-                href="#cursos"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
-              >
-                {n}
-              </a>
-            ))}
+            {nav.map((n) =>
+              n.to ? (
+                <Link
+                  key={n.label}
+                  to={n.to}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  {n.label}
+                </Link>
+              ) : (
+                <a
+                  key={n.label}
+                  href={n.href}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  {n.label}
+                </a>
+              ),
+            )}
           </div>
+
         )}
       </header>
 
@@ -413,25 +407,31 @@ function Index() {
       <section id="cursos" className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <span className="text-sm font-semibold text-cyan">Mais Populares</span>
+            <span className="text-sm font-semibold text-cyan">Do básico ao avançado</span>
             <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight">
               Cursos em Destaque
             </h2>
             <p className="mt-3 max-w-xl text-muted-foreground">
-              Comece sua jornada com nossos cursos mais procurados por desenvolvedores.
+              {allCourses.length} cursos completos e {totalLessons} lições, organizados em módulos
+              progressivos — do primeiro "olá mundo" a arquitetura sênior.
             </p>
           </div>
-          <a
-            href="#roadmap"
+          <Link
+            to="/cursos"
             className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold transition-colors hover:border-blue hover:bg-surface"
           >
             Ver todos os cursos <ArrowRight className="h-4 w-4" />
-          </a>
+          </Link>
         </div>
 
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {courses.map((c) => (
-            <article key={c.title} className="card-soft flex flex-col p-6">
+          {allCourses.slice(0, 8).map((c) => (
+            <Link
+              key={c.slug}
+              to="/cursos/$slug"
+              params={{ slug: c.slug }}
+              className="card-soft flex flex-col p-6 transition-transform hover:-translate-y-1"
+            >
               <div className="flex items-start justify-between">
                 <span className="bg-brand flex h-11 w-11 items-center justify-center rounded-xl font-mono text-sm font-bold text-primary-foreground">
                   {c.icon}
@@ -446,14 +446,35 @@ function Index() {
               <p className="mt-2 flex-1 text-sm text-muted-foreground">{c.desc}</p>
               <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
                 <span>
-                  {c.lessons} • {c.time}
+                  {countLessons(c)} lições • {c.hours}
                 </span>
-                <span>{c.level}</span>
+                <span>
+                  {levelEmoji[c.level]} {c.level}
+                </span>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
+
+        <div className="card-soft mt-10 flex flex-wrap items-center justify-between gap-6 p-8">
+          <div>
+            <h3 className="font-display text-2xl font-extrabold">
+              Playground: rode <span className="text-gradient">qualquer linguagem</span>
+            </h3>
+            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+              Python, Java, C, C++, C#, Go, Rust, PHP, Ruby, Kotlin, Swift, SQL, Bash e mais — com
+              nome e extensão de arquivo à sua escolha, além de preview ao vivo de HTML/CSS/JS.
+            </p>
+          </div>
+          <Link
+            to="/playground"
+            className="bg-brand glow inline-flex items-center gap-2 rounded-xl px-6 py-3 font-bold whitespace-nowrap text-primary-foreground"
+          >
+            <Play className="h-4 w-4" /> Abrir Playground
+          </Link>
+        </div>
       </section>
+
 
       {/* Roadmap */}
       <section id="roadmap" className="border-y border-border bg-surface/40">
