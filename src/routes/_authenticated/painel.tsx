@@ -80,6 +80,25 @@ function Painel() {
     return map;
   }, [progress]);
 
+  const feitas = useMemo(
+    () => new Set(progress.map((p) => `${p.course_slug}-${p.module_index}-${p.lesson_index}`)),
+    [progress],
+  );
+
+  /** Primeira lição ainda não concluída de um curso. */
+  function proximaLicao(slug: string) {
+    const c = courses.find((x) => x.slug === slug);
+    if (!c) return null;
+    for (let i = 0; i < c.modules.length; i++) {
+      const mod = c.modules[i];
+      if (!mod) continue;
+      for (let j = 0; j < mod.lessons.length; j++) {
+        if (!feitas.has(`${slug}-${i}-${j}`)) return { m: i, l: j, titulo: mod.lessons[j] ?? "" };
+      }
+    }
+    return null;
+  }
+
   const started = courses
     .filter((c) => byCourse.has(c.slug))
     .sort((a, b) => (byCourse.get(b.slug) ?? 0) - (byCourse.get(a.slug) ?? 0));
