@@ -245,6 +245,17 @@ function Playground() {
   }, [fetchRuntimes]);
 
   useEffect(() => {
+    try {
+      const raw = localStorage.getItem(VERSIONS_KEY);
+      if (raw) setVersions(JSON.parse(raw) as CodeVersion[]);
+    } catch {
+      /* histórico indisponível */
+    }
+  }, []);
+
+
+
+  useEffect(() => {
     if (!snippet || !user) return;
     void (async () => {
       const { data } = await supabase
