@@ -107,15 +107,15 @@ function CourseDetail() {
       </section>
 
       <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
+        <div className="grid grid-cols-1 items-end gap-5 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0">
             <h2 className="font-display text-2xl font-extrabold">Conteúdo do curso</h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Progressão do básico ao avançado. Cada lição tem explicação, exemplo e exercício com
               correção automática.
             </p>
           </div>
-          <div className="min-w-[220px]">
+          <div className="w-full sm:w-64">
             <div className="h-2 overflow-hidden rounded-full bg-surface-2">
               <div className="bg-brand h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
             </div>
@@ -134,13 +134,13 @@ function CourseDetail() {
             <div key={m.title} className="card-soft overflow-hidden p-0">
               <button
                 onClick={() => setOpen(open === i ? null : i)}
-                className="flex w-full items-center gap-4 px-5 py-4 text-left"
+                className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 text-left sm:px-5"
               >
                 <span className="bg-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-primary-foreground">
                   {i + 1}
                 </span>
-                <span className="flex-1">
-                  <span className="block font-display font-bold">{m.title}</span>
+                <span className="min-w-0">
+                  <span className="block break-words font-display font-bold leading-snug">{m.title}</span>
                   <span className="text-xs text-muted-foreground">
                     {moduleDone}/{m.lessons.length} lições
                   </span>
@@ -156,7 +156,7 @@ function CourseDetail() {
                   {m.lessons.map((l, j) => (
                     <li
                       key={l}
-                      className="flex items-center gap-3 border-b border-border/50 py-2.5 text-sm last:border-0"
+                     className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 border-b border-border/50 py-3 text-sm last:border-0 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
                     >
                       {done.has(`${i}-${j}`) ? (
                         <Check className="h-4 w-4 shrink-0 text-success" />
@@ -166,14 +166,14 @@ function CourseDetail() {
                       <Link
                         to="/cursos/$slug/licao/$m/$l"
                         params={{ slug: course.slug, m: String(i), l: String(j) }}
-                        className="flex-1 hover:text-cyan"
+                         className="min-w-0 break-words leading-6 hover:text-cyan"
                       >
                         {l}
                       </Link>
                       <Link
                         to="/cursos/$slug/licao/$m/$l"
                         params={{ slug: course.slug, m: String(i), l: String(j) }}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-cyan"
+                         className="col-start-2 inline-flex items-center gap-1 text-xs font-semibold text-cyan sm:col-start-3"
                       >
                         <Play className="h-3 w-3" /> Estudar
                       </Link>

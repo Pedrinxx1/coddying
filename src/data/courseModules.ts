@@ -74,11 +74,11 @@ export const extraModules: Record<string, { title: string; lessons: string[] }[]
   ],
   python: [
     {
-      title: "Python intermediário",
+      title: "Código organizado e dados",
       lessons: ["List comprehension", "Funções, args e kwargs", "Módulos, pacotes e pip", "Arquivos e JSON", "Tratamento de exceções"],
     },
     {
-      title: "Python avançado",
+      title: "Engenharia e automação",
       lessons: ["Classes e orientação a objetos", "Decoradores e geradores", "Type hints", "Testes com pytest", "Projeto: automação de planilhas"],
     },
   ],
