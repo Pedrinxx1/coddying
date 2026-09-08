@@ -139,6 +139,65 @@ const tracks = [
   },
 ];
 
+const testimonials = [
+  {
+    name: "Marina S.",
+    role: "Estudante de ADS",
+    text: "Tentei aprender por vídeo por anos e sempre travava. Com os exercícios corrigidos na hora, finalmente saí do zero.",
+  },
+  {
+    name: "Lucas P.",
+    role: "Dev júnior",
+    text: "O tutor de IA me destravou dezenas de vezes. Ele não dá a resposta — dá a dica certa pra eu chegar lá sozinho.",
+  },
+  {
+    name: "Ana R.",
+    role: "Transição de carreira",
+    text: "A revisão espaçada fez toda a diferença. Hoje faço entrevistas técnicas lembrando tudo que estudei meses atrás.",
+  },
+];
+
+const faqs = [
+  {
+    q: "É realmente 100% gratuito?",
+    a: "Sim. Todos os cursos, exercícios, o tutor de IA e os certificados são gratuitos, sem cartão de crédito e sem pegadinhas.",
+  },
+  {
+    q: "Preciso saber alguma coisa antes de começar?",
+    a: "Não. O roadmap começa na Fase 0, feita para quem nunca escreveu uma linha de código na vida.",
+  },
+  {
+    q: "Como funciona o tutor de IA?",
+    a: "Ele lê seu código e o erro que você encontrou, explica o que aconteceu e dá dicas progressivas — nunca entrega a resposta pronta.",
+  },
+  {
+    q: "Quanto tempo leva para conseguir o primeiro emprego?",
+    a: "Depende do seu ritmo, mas as trilhas de carreira foram desenhadas para levar de 3 a 8 meses estudando algumas horas por dia.",
+  },
+  {
+    q: "Vocês emitem certificados?",
+    a: "Sim. Ao completar cada curso você recebe um certificado compartilhável para colocar no LinkedIn e no currículo.",
+  },
+];
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card-soft overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-display font-bold"
+      >
+        {q}
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-cyan transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && <p className="px-6 pb-5 text-sm text-muted-foreground">{a}</p>}
+    </div>
+  );
+}
+
 const features = [
   {
     icon: Layers,
