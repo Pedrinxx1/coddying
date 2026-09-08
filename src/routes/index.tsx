@@ -203,8 +203,8 @@ function StatCard({ item }: { item: (typeof stats)[number] }) {
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) setRun(true);
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setRun(true);
       },
       { threshold: 0.4 },
     );
