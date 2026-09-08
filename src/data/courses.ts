@@ -295,7 +295,7 @@ const baseCourses: Course[] = [
     modules: [
       {
         title: "Básico",
-        lessons: ["Sintaxe e variáveis", "Strings e f-strings", "Condicionais e loops", "Funções"],
+        lessons: ["Seu primeiro programa: Hello, World!", "Strings e f-strings", "Condicionais e loops", "Funções"],
       },
       {
         title: "Estruturas de dados",
