@@ -15,7 +15,7 @@ export type LessonContent = {
   example: { language: string; code: string; explain: string };
   quiz: QuizQuestion[];
   exercise: Exercise;
-  guided?: GuidedLesson;
+  guided: GuidedLesson | undefined;
 };
 
 const webLangs = new Set(["html", "css"]);
@@ -70,7 +70,7 @@ export function lessonContent(course: Course, moduleTitle: string, lessonTitle: 
         }
       : {
           prompt: `Desafio: faça o programa imprimir exatamente 15 (a soma de 1 a 5) usando o que você viu em "${lessonTitle}".`,
-          starter: fallbackStarters[course.lang] ?? fallbackStarters.python ?? "",
+          starter: fallbackStarters[course.lang] ?? fallbackStarters["python"] ?? "",
           expected: "15",
           language: course.lang,
         };

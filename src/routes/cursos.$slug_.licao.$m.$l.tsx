@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Bot,
+  BookOpen,
   CheckCircle2,
   ChevronDown,
   CircleDashed,
@@ -16,6 +17,8 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Target,
+  Terminal,
   XCircle,
 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -27,6 +30,7 @@ import { runCode } from "@/lib/run-code.functions";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
 import { completeLesson, uncompleteLesson } from "@/lib/learning";
+import { Button } from "@/components/ui/button";
 
 function LessonText({ body }: { body: string }) {
   const blocks = body.split(/\n+/).map((block) => block.trim()).filter(Boolean);
@@ -99,6 +103,7 @@ function LessonPage() {
   const content = useMemo(() => lessonContent(course, mod.title, lesson), [course, mod, lesson]);
   const videos = useMemo(() => videoAulas(course.title, mod.title, lesson), [course, mod, lesson]);
   const ex = content.exercise;
+  const guided = content.guided;
 
   const [code, setCode] = useState(ex.starter);
   const [output, setOutput] = useState<string | null>(null);
@@ -114,6 +119,9 @@ function LessonPage() {
   >([]);
   const [pergunta, setPergunta] = useState("");
   const [indice, setIndice] = useState(false);
+  const [guidedAnswers, setGuidedAnswers] = useState<Record<number, number>>({});
+  const [challengeIndex, setChallengeIndex] = useState(0);
+  const [showHint, setShowHint] = useState(false);
   const run = useServerFn(runCode);
 
   useEffect(() => {
@@ -124,6 +132,9 @@ function LessonPage() {
     setAnswers({});
     setChat([]);
     setIndice(false);
+    setGuidedAnswers({});
+    setChallengeIndex(0);
+    setShowHint(false);
   }, [ex]);
 
   useEffect(() => {
@@ -148,7 +159,9 @@ function LessonPage() {
     };
   }, [user, course.slug, m, l]);
 
-  const isWeb = ex.expected === null;
+  const activeChallenge = guided?.challenges[challengeIndex];
+  const activeExpected = activeChallenge?.expected ?? ex.expected;
+  const isWeb = activeExpected === null;
   const total = countLessons(course);
   const pct = total ? Math.round((feitas.size / total) * 100) : 0;
   const erradas = content.quiz
@@ -185,7 +198,11 @@ function LessonPage() {
       const res = await run({ data: { language: ex.language, code, stdin: "" } });
       const out = (res.output || res.stderr || res.error || "").trim();
       setOutput(out);
-      setStatus(out.replace(/\s+/g, " ").includes(ex.expected ?? "") ? "ok" : "fail");
+      const normalizedOutput = out.replace(/\r/g, "").trim();
+      const correct = activeExpected === "\n"
+        ? normalizedOutput.split("\n").filter(Boolean).length >= 2
+        : normalizedOutput.includes(activeExpected ?? "");
+      setStatus(correct ? "ok" : "fail");
     } catch {
       setOutput("Não foi possível executar agora. Tente de novo.");
       setStatus("fail");
@@ -295,9 +312,84 @@ function LessonPage() {
           )}
         </div>
 
+        {guided && (
+          <section className="mt-6 border-y border-border py-5">
+            <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-2 text-cyan">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground">
+                  <span>{guided.level}</span><span>{guided.duration}</span><span>{guided.steps.length} etapas práticas</span>
+                </div>
+                <h2 className="mt-2 text-lg font-bold">Ao terminar, você vai conseguir</h2>
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {guided.objectives.map((objective) => (
+                    <li key={objective} className="flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+                      <Target className="mt-1 h-4 w-4 shrink-0 text-success" />
+                      <span>{objective}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)] lg:gap-10">
           <article className="min-w-0 space-y-8">
-            <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+            {guided ? (
+              <div className="space-y-10">
+                {guided.steps.map((step, index) => {
+                  const selected = guidedAnswers[index];
+                  const answered = selected !== undefined;
+                  return (
+                    <section key={step.title} className="border-b border-border pb-10 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan/50 text-xs font-bold text-cyan">{index + 1}</span>
+                        <p className="text-xs font-bold uppercase text-cyan">{step.eyebrow}</p>
+                      </div>
+                      <h2 className="mt-4 text-xl font-bold leading-snug sm:text-2xl">{step.title}</h2>
+                      <p className="mt-3 text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8">{step.explanation}</p>
+                      {step.code && (
+                        <div className="mt-5 overflow-hidden rounded-lg border border-border bg-surface">
+                          <div className="flex items-center justify-between border-b border-border px-4 py-2 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-2"><Terminal className="h-3.5 w-3.5" /> Python</span>
+                            <Button variant="ghost" size="sm" onClick={() => { setCode(step.code ?? ""); setStatus("idle"); setOutput(null); }}>Testar no editor</Button>
+                          </div>
+                          <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-6"><code>{step.code}</code></pre>
+                        </div>
+                      )}
+                      {step.note && <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-muted-foreground"><Lightbulb className="mt-1 h-4 w-4 shrink-0 text-warn" />{step.note}</p>}
+                      {step.check && (
+                        <div className="mt-5 rounded-lg border border-border bg-surface p-4 sm:p-5">
+                          <p className="text-xs font-bold uppercase text-violet">Cheque seu entendimento</p>
+                          <p className="mt-2 text-sm font-semibold leading-6">{step.check.question}</p>
+                          <div className="mt-3 grid gap-2">
+                            {step.check.options.map((option, optionIndex) => {
+                              const correct = optionIndex === step.check?.answer;
+                              const chosen = selected === optionIndex;
+                              return (
+                                <Button key={option} variant="outline" disabled={answered} onClick={() => setGuidedAnswers((old) => ({ ...old, [index]: optionIndex }))} className={`h-auto min-h-10 justify-start whitespace-normal px-3 py-2 text-left ${answered && correct ? "border-success text-success" : chosen ? "border-destructive text-destructive" : ""}`}>
+                                  {option}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                          {answered && <p className={`mt-3 text-sm leading-6 ${selected === step.check.answer ? "text-success" : "text-warn"}`}>{selected === step.check.answer ? "Correto. " : "Ainda não. "}{step.check.explanation}</p>}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+                <section className="border-t border-border pt-8">
+                  <h2 className="text-xl font-bold">O que você aprendeu</h2>
+                  <ul className="mt-4 space-y-3">
+                    {guided.recap.map((item) => <li key={item} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />{item}</li>)}
+                  </ul>
+                </section>
+              </div>
+            ) : <div className="overflow-hidden rounded-2xl border border-border bg-surface">
               {content.sections.map((s, index) => (
                 <section
                   key={`${s.kind}-${index}`}
@@ -308,7 +400,7 @@ function LessonPage() {
                   <LessonText body={s.body} />
                 </section>
               ))}
-            </div>
+            </div>}
 
             <section className="card-soft p-5 sm:p-6">
               <div className="flex items-center gap-2">
@@ -338,7 +430,7 @@ function LessonPage() {
               </div>
             </section>
 
-            <section className="card-soft overflow-hidden p-0">
+            {!guided && <section className="card-soft overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
                 <h2 className="font-display text-base font-bold sm:text-lg">Exemplo comentado</h2>
                 <p className="mt-1 text-xs text-muted-foreground">{content.example.language}</p>
@@ -362,7 +454,7 @@ function LessonPage() {
                   Copiar exemplo para o editor →
                 </button>
               </div>
-            </section>
+            </section>}
 
             <section className="card-soft p-5 sm:p-6">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
@@ -433,7 +525,7 @@ function LessonPage() {
                         <li key={r.q.q} className="text-xs">
                           <p className="font-semibold text-foreground">{r.q.q}</p>
                           <p className="mt-1 text-muted-foreground">
-                            Você marcou “{r.q.options[r.escolhida!]}”. O certo é “{r.q.options[r.q.answer]}”.
+                          Você marcou “{r.escolhida === undefined ? "" : r.q.options[r.escolhida]}”. O certo é “{r.q.options[r.q.answer]}”.
                           </p>
                           <p className="mt-1 text-muted-foreground">
                             <span className="font-semibold text-cyan">Por quê (material desta lição):</span> {r.q.why}
@@ -478,8 +570,15 @@ function LessonPage() {
           <div className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div className="card-soft overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
-                <h2 className="font-display text-base font-bold sm:text-lg">Exercício</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{ex.prompt}</p>
+                <h2 className="font-display text-base font-bold sm:text-lg">{activeChallenge?.title ?? "Exercício"}</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{activeChallenge?.instruction ?? ex.prompt}</p>
+                {guided && (
+                  <div className="mt-4 grid grid-cols-3 gap-2" aria-label="Desafios da aula">
+                    {guided.challenges.map((challenge, index) => (
+                      <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus("idle"); setOutput(null); setShowHint(false); }} className="min-w-0 px-2">{index + 1}</Button>
+                    ))}
+                  </div>
+                )}
               </div>
               <textarea
                 value={code}
@@ -497,15 +596,18 @@ function LessonPage() {
                   {isWeb ? "Rodar" : "Verificar resposta"}
                 </button>
                 <button
-                  onClick={() => setCode(ex.starter)}
+                  onClick={() => setCode(activeChallenge?.starter ?? ex.starter)}
                   className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground"
                 >
                   Recomeçar
                 </button>
+                {activeChallenge && <Button variant="ghost" size="sm" onClick={() => setShowHint((value) => !value)}><Lightbulb className="h-3.5 w-3.5" /> Dica</Button>}
                 <Link to="/playground" className="ml-auto text-xs font-semibold text-cyan">
                   Abrir no playground
                 </Link>
               </div>
+
+              {showHint && activeChallenge && <p className="border-t border-border px-4 py-3 text-sm leading-6 text-warn">{activeChallenge.hint}</p>}
 
               {isWeb ? (
                 srcDoc && (
