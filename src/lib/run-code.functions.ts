@@ -55,6 +55,7 @@ const aliases: Record<string, string> = {
   hs: "haskell",
   ex: "elixir",
   "objective-c": "objective-c",
+  java: "java",
 };
 
 function resolveLanguage(input: string, list: Lang[]) {
@@ -68,6 +69,31 @@ function resolveLanguage(input: string, list: Lang[]) {
   const pool = matches.length ? matches : fallback;
   if (!pool.length) return undefined;
   return pool.reduce((a, b) => (b.id > a.id ? b : a));
+}
+
+/**
+ * Wraps Java code to handle common import scenarios.
+ * Judge0 has full JDK support, so java.util.*, java.io.*, etc. work out of the box.
+ */
+function wrapJavaCode(code: string): string {
+  // If code already has a class definition, return as-is
+  if (code.includes("public class") || code.includes("class ")) {
+    return code;
+  }
+
+  // If it's just a main method or statements, wrap in a class
+  if (code.includes("public static void main") || code.trim().startsWith("System.out")) {
+    return `public class Main {
+${code.split("\n").map((line) => `  ${line}`).join("\n")}
+}`;
+  }
+
+  // Default: wrap everything
+  return `public class Main {
+  public static void main(String[] args) {
+${code.split("\n").map((line) => `    ${line}`).join("\n")}
+  }
+}`;
 }
 
 export const runCode = createServerFn({ method: "POST" })
@@ -88,12 +114,17 @@ export const runCode = createServerFn({ method: "POST" })
       const dec = (s?: string | null) =>
         s ? Buffer.from(s, "base64").toString("utf-8") : "";
 
+      // Wrap Java code to ensure it's executable
+      const finalCode = lang.name.toLowerCase().includes("java")
+        ? wrapJavaCode(data.code)
+        : data.code;
+
       const res = await fetch(`${JUDGE0}/submissions?base64_encoded=true&wait=true`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           language_id: lang.id,
-          source_code: enc(data.code),
+          source_code: enc(finalCode),
           stdin: enc(data.stdin ?? ""),
           cpu_time_limit: 10,
         }),
@@ -113,7 +144,6 @@ export const runCode = createServerFn({ method: "POST" })
 
       const out = [dec(body.compile_output), dec(body.stdout)].filter(Boolean).join("\n").trim();
       const err = [dec(body.stderr), dec(body.message)].filter(Boolean).join("\n").trim();
-
 
       return {
         ok: body.status?.id === 3,
