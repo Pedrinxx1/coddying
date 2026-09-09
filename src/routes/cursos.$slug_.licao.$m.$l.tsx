@@ -753,7 +753,7 @@ function LessonPage() {
             )}
           </article>
 
-          <div className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <div id="aula-pratica" className="min-w-0 scroll-mt-24 space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div className="card-soft overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
                 <h2 className="font-display text-base font-bold sm:text-lg">{activeChallenge?.title ?? "Exercício"}</h2>
