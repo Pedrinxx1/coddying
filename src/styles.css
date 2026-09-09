@@ -136,3 +136,72 @@
     100% 100%,
     28px 28px;
 }
+
+/* Leitura acessível das aulas */
+.leitura {
+  font-size: calc(1rem * var(--leitura-escala, 1));
+}
+
+.leitura :where(p, li, code, pre, h1, h2, h3, span, button, textarea, input) {
+  font-size: inherit;
+  line-height: calc(1.6 * var(--leitura-altura, 1));
+}
+
+.leitura-contraste {
+  --muted-foreground: oklch(0.96 0.005 250);
+  --border: oklch(0.62 0.03 265);
+  --surface: oklch(0.12 0.02 265);
+  --surface-2: oklch(0.16 0.02 265);
+  --card: oklch(0.12 0.02 265);
+}
+
+.leitura-quebra :where(p, li, code, pre, .font-mono) {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.impressao {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  header,
+  iframe,
+  textarea,
+  nav,
+  .nao-imprimir {
+    display: none !important;
+  }
+
+  .impressao {
+    display: block !important;
+    color: #111;
+  }
+
+  .impressao * {
+    color: #111 !important;
+    border-color: #999 !important;
+  }
+
+  .impressao pre {
+    background: #f3f3f3 !important;
+    white-space: pre-wrap;
+    padding: 8px;
+    border-radius: 6px;
+  }
+
+  main {
+    display: none !important;
+  }
+}
+
