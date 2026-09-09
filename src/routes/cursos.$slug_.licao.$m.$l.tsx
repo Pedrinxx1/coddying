@@ -10,6 +10,7 @@ import {
   ChevronDown,
   CircleDashed,
   Contrast,
+  Keyboard,
   Lightbulb,
   ListChecks,
   Loader2,
