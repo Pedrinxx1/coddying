@@ -9,18 +9,25 @@ import {
   CheckCircle2,
   ChevronDown,
   CircleDashed,
+  Contrast,
   Lightbulb,
   ListChecks,
   Loader2,
+  Minus,
   Play,
   PlayCircle,
+  Plus,
+  Printer,
   Send,
   ShieldCheck,
   Sparkles,
   Target,
   Terminal,
+  Type,
+  WrapText,
   XCircle,
 } from "lucide-react";
+
 import { SiteHeader } from "@/components/SiteHeader";
 import { countLessons, getCourse } from "@/data/courses";
 import { lessonContent } from "@/data/lessonContent";
