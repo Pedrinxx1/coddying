@@ -605,7 +605,7 @@ function LessonPage() {
 
 
   return (
-    <div className="min-h-screen bg-background pb-24 lg:pb-0">
+    <div className="min-h-screen bg-background pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0">
       <SiteHeader crumb={course.title} />
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7">
@@ -1406,7 +1406,7 @@ function LessonPage() {
       </main>
 
       {/* Barra fixa de navegação no celular */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 py-2.5 backdrop-blur-xl lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
           {prev ? (
             <Link
