@@ -44,8 +44,8 @@ const helloWorld: GuidedLesson = {
     "Alterar o programa sem apenas copiar",
   ],
   mentalModel: [
-    { label: "Instrução", description: "Você escreve exatamente o que deve acontecer." },
-    { label: "Execução", description: "Python lê e executa a instrução de cima para baixo." },
+    { label: "Entrada", description: "Você escreve uma instrução e entrega um texto à função." },
+    { label: "Processamento", description: "Python lê e executa a instrução de cima para baixo." },
     { label: "Saída", description: "O resultado aparece no console para você conferir." },
   ],
   steps: [
@@ -67,6 +67,11 @@ const helloWorld: GuidedLesson = {
       explanation:
         "print é uma função pronta do Python. Uma função é uma ação que possui um nome. Os parênteses chamam essa ação, e o valor colocado dentro deles é o argumento que entregamos à função.",
       code: `print("Olá, mundo!")`,
+      walkthrough: [
+        { line: "print", explanation: "É o nome da função pronta que exibe uma informação." },
+        { line: "( )", explanation: "Os parênteses fazem a chamada da função e recebem o argumento." },
+        { line: '"Olá, mundo!"', explanation: "As aspas delimitam uma string: o texto que será exibido." },
+      ],
       note: "Leia em voz alta: chame a função print e entregue a ela o texto Olá, mundo!.",
       check: {
         question: "Qual parte manda Python realizar a ação de exibir algo?",

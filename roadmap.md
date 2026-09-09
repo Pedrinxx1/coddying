@@ -6,4 +6,4 @@
 - [x] Oferecer prática adequada a cada assunto: código, visualização ou análise guiada
 - [x] Tornar vídeos, tutor, revisão, quiz e progresso parte coerente da aula
 - [x] Auditar todas as lições para eliminar a antiga divisão entre aula completa e resumo
-- [ ] Testar cursos representativos de todas as áreas em celular e computador
+- [x] Testar cursos representativos de todas as áreas em celular e computador
