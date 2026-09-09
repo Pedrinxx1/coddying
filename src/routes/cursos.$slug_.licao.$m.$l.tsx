@@ -143,8 +143,28 @@ function LessonPage() {
   const [guidedAnswers, setGuidedAnswers] = useState<Record<number, number>>({});
   const [challengeIndex, setChallengeIndex] = useState(0);
   const [completedChallenges, setCompletedChallenges] = useState<Set<number>>(new Set());
-  const [showHint, setShowHint] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
+  const [escala, setEscala] = useState(1);
+  const [contraste, setContraste] = useState(false);
+  const [quebra, setQuebra] = useState(true);
   const run = useServerFn(runCode);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("codding:leitura");
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as { escala?: number; contraste?: boolean; quebra?: boolean };
+      if (typeof parsed.escala === "number") setEscala(parsed.escala);
+      if (typeof parsed.contraste === "boolean") setContraste(parsed.contraste);
+      if (typeof parsed.quebra === "boolean") setQuebra(parsed.quebra);
+    } catch {
+      /* preferências inválidas são ignoradas */
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("codding:leitura", JSON.stringify({ escala, contraste, quebra }));
+  }, [escala, contraste, quebra]);
 
   useEffect(() => {
     setCode(ex.starter);
@@ -157,8 +177,9 @@ function LessonPage() {
     setGuidedAnswers({});
     setChallengeIndex(0);
     setCompletedChallenges(new Set());
-    setShowHint(false);
+    setHintLevel(0);
   }, [ex]);
+
 
   useEffect(() => {
     if (!user) {
