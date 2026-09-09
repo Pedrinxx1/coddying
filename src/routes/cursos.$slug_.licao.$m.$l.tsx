@@ -426,7 +426,8 @@ function LessonPage() {
   }, [code, activeChallenge, ex.starter, output, srcDoc, guided, completedChallenges, challengeIndex, status, isReflection, isWeb, activeExpected]);
 
   function irPara(id: string) {
-    const alvo = document.getElementById(id);
+    const alternativas: Record<string, string> = { "aula-revisao": "aula-quiz", "aula-exemplo": "aula-explicacao" };
+    const alvo = document.getElementById(id) ?? document.getElementById(alternativas[id] ?? "");
     if (!alvo) return;
     alvo.scrollIntoView({ behavior: "smooth", block: "start" });
     alvo.setAttribute("tabindex", "-1");
