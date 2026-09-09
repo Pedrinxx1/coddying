@@ -188,6 +188,31 @@ function CourseDetail() {
 
 
 
+        <section className="card-soft mt-12 p-5 sm:p-6">
+          <h2 className="font-display text-2xl font-extrabold">Prova final, projeto e certificado</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Ao terminar as lições, faça a prova final de {course.title} (12 questões tiradas do próprio conteúdo do
+            curso), entregue o projeto final e receba um certificado com código de verificação, pronto para imprimir ou
+            salvar em PDF.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              to="/cursos/$slug/prova"
+              params={{ slug: course.slug }}
+              className="bg-brand inline-flex min-h-11 items-center rounded-xl px-5 font-bold text-primary-foreground"
+            >
+              Fazer prova final
+            </Link>
+            <Link
+              to="/cursos/$slug/certificado"
+              params={{ slug: course.slug }}
+              className="inline-flex min-h-11 items-center rounded-xl border border-border px-5 font-semibold"
+            >
+              Meu certificado
+            </Link>
+          </div>
+        </section>
+
         {related.length > 0 && (
           <>
             <h2 className="mt-16 font-display text-2xl font-extrabold">Continue por aqui</h2>
