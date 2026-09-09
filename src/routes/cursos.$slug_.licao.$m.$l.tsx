@@ -20,8 +20,11 @@ import {
   Plus,
   Printer,
   Send,
+  Search,
   ShieldCheck,
   Sparkles,
+  Star,
+  StickyNote,
   Target,
   Terminal,
   Type,
@@ -30,7 +33,7 @@ import {
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/SiteHeader";
-import { countLessons, getCourse } from "@/data/courses";
+import { countLessons, courses, getCourse } from "@/data/courses";
 import { lessonContent } from "@/data/lessonContent";
 import { askTutor, tutorSuggestions } from "@/lib/tutor";
 import { videoAulas } from "@/lib/videoAulas";
@@ -161,6 +164,11 @@ function LessonPage() {
   const [escala, setEscala] = useState(1);
   const [contraste, setContraste] = useState(false);
   const [quebra, setQuebra] = useState(true);
+  const [activeStep, setActiveStep] = useState(0);
+  const [busca, setBusca] = useState("");
+  const [favorita, setFavorita] = useState(false);
+  const [nota, setNota] = useState("");
+  const [notaAberta, setNotaAberta] = useState(false);
   const run = useServerFn(runCode);
 
   useEffect(() => {
@@ -195,7 +203,64 @@ function LessonPage() {
     setSecoesVistas([]);
     setUltimaSecao("aula-explicacao");
     setRetomavel(false);
+    setActiveStep(0);
+    setBusca("");
+    setNota("");
+    setNotaAberta(false);
   }, [ex]);
+
+  const chaveFavorito = `codding:favorito:${course.slug}:${m}:${l}`;
+  const chaveNota = `codding:nota:${course.slug}:${m}:${l}`;
+
+  useEffect(() => {
+    setFavorita(localStorage.getItem(chaveFavorito) === "1");
+    setNota(localStorage.getItem(chaveNota) ?? "");
+    if (!user) return;
+    let alive = true;
+    void Promise.all([
+      supabase.from("lesson_favorites").select("id").eq("course_slug", course.slug).eq("module_index", m).eq("lesson_index", l).maybeSingle(),
+      supabase.from("lesson_notes").select("body").eq("course_slug", course.slug).eq("module_index", m).eq("lesson_index", l).eq("section_id", "aula").maybeSingle(),
+    ]).then(([favoriteResult, noteResult]) => {
+      if (!alive) return;
+      if (favoriteResult.data) setFavorita(true);
+      if (noteResult.data?.body) setNota(noteResult.data.body);
+    });
+    return () => { alive = false; };
+  }, [chaveFavorito, chaveNota, course.slug, m, l, user]);
+
+  useEffect(() => {
+    localStorage.setItem(chaveNota, nota);
+    if (!user) return;
+    const timer = window.setTimeout(() => {
+      void supabase.from("lesson_notes").upsert({
+        user_id: user.id,
+        course_slug: course.slug,
+        module_index: m,
+        lesson_index: l,
+        section_id: "aula",
+        body: nota,
+      }, { onConflict: "user_id,course_slug,module_index,lesson_index,section_id" });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [chaveNota, nota, user, course.slug, m, l]);
+
+  async function toggleFavorite() {
+    const nextValue = !favorita;
+    setFavorita(nextValue);
+    localStorage.setItem(chaveFavorito, nextValue ? "1" : "0");
+    if (!user) return;
+    if (nextValue) {
+      await supabase.from("lesson_favorites").upsert({ user_id: user.id, course_slug: course.slug, module_index: m, lesson_index: l }, { onConflict: "user_id,course_slug,module_index,lesson_index" });
+    } else {
+      await supabase.from("lesson_favorites").delete().eq("user_id", user.id).eq("course_slug", course.slug).eq("module_index", m).eq("lesson_index", l);
+    }
+  }
+
+  const resultadosBusca = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
+    if (termo.length < 2) return [];
+    return courses.flatMap((item) => item.modules.flatMap((module, moduleIndex) => module.lessons.map((title, lessonIndex) => ({ course: item, module, moduleIndex, lessonIndex, title })))).filter((item) => `${item.course.title} ${item.module.title} ${item.title}`.toLocaleLowerCase("pt-BR").includes(termo)).slice(0, 8);
+  }, [busca]);
 
   const chaveProgresso = `codding:aula:${course.slug}:${m}:${l}`;
   const restaurado = useRef(false);
