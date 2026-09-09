@@ -178,12 +178,14 @@
 
 @media print {
   @page {
-    margin: 16mm;
+    margin: 18mm 16mm 20mm;
   }
 
+  html,
   body {
     background: #fff !important;
     color: #111 !important;
+    font-size: 11.5pt;
   }
 
   header,
@@ -202,17 +204,89 @@
   .impressao * {
     color: #111 !important;
     border-color: #999 !important;
+    background: transparent !important;
+  }
+
+  .impressao h1 {
+    font-size: 20pt;
+    margin: 0 0 4mm;
+  }
+
+  .impressao h2 {
+    font-size: 14pt;
+    margin: 8mm 0 3mm;
+    padding-bottom: 1.5mm;
+    border-bottom: 1px solid #999;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .impressao h3 {
+    font-size: 12pt;
+    margin: 5mm 0 2mm;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .impressao p,
+  .impressao li {
+    line-height: 1.55;
+    orphans: 3;
+    widows: 3;
+  }
+
+  .impressao section,
+  .impressao li,
+  .impressao pre,
+  .impressao table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .impressao .quebra-pagina {
+    break-before: page;
+    page-break-before: always;
   }
 
   .impressao pre {
     background: #f3f3f3 !important;
     white-space: pre-wrap;
-    padding: 8px;
-    border-radius: 6px;
+    word-break: break-word;
+    padding: 3mm;
+    border: 1px solid #ccc;
+    border-radius: 2mm;
+    font-size: 9.5pt;
   }
 
-  main {
+  .impressao table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+
+  .impressao th,
+  .impressao td {
+    border: 1px solid #999;
+    padding: 2mm;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .impressao .rodape-impressao {
+    margin-top: 8mm;
+    border-top: 1px solid #999;
+    padding-top: 2mm;
+    font-size: 9pt;
+  }
+
+  body:has(.impressao) main {
     display: none !important;
   }
+
+  .certificado {
+    border: 3px solid #111 !important;
+    padding: 18mm !important;
+  }
 }
+
 
