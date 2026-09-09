@@ -18,6 +18,8 @@ import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as CursosIndexRouteImport } from './routes/cursos.index'
 import { Route as CursosSlugRouteImport } from './routes/cursos.$slug'
+import { Route as CursosSlugCertificadoRouteImport } from './routes/cursos.$slug_.certificado'
+import { Route as CursosSlugProvaRouteImport } from './routes/cursos.$slug_.prova'
 import { Route as CursosSlugLicaoMLRouteImport } from './routes/cursos.$slug_.licao.$m.$l'
 
 const IndexRoute = IndexRouteImport.update({
@@ -64,6 +66,16 @@ const CursosSlugRoute = CursosSlugRouteImport.update({
   path: '/cursos/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CursosSlugCertificadoRoute = CursosSlugCertificadoRouteImport.update({
+  id: '/cursos/$slug_/certificado',
+  path: '/cursos/$slug/certificado',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CursosSlugProvaRoute = CursosSlugProvaRouteImport.update({
+  id: '/cursos/$slug_/prova',
+  path: '/cursos/$slug/prova',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CursosSlugLicaoMLRoute = CursosSlugLicaoMLRouteImport.update({
   id: '/cursos/$slug_/licao/$m/$l',
   path: '/cursos/$slug/licao/$m/$l',
@@ -79,6 +91,8 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/cursos/': typeof CursosIndexRoute
+  '/cursos/$slug/certificado': typeof CursosSlugCertificadoRoute
+  '/cursos/$slug/prova': typeof CursosSlugProvaRoute
   '/cursos/$slug/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
 export interface FileRoutesByTo {
@@ -90,6 +104,8 @@ export interface FileRoutesByTo {
   '/painel': typeof AuthenticatedPainelRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/cursos': typeof CursosIndexRoute
+  '/cursos/$slug/certificado': typeof CursosSlugCertificadoRoute
+  '/cursos/$slug/prova': typeof CursosSlugProvaRoute
   '/cursos/$slug/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
 export interface FileRoutesById {
@@ -103,6 +119,8 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/cursos/': typeof CursosIndexRoute
+  '/cursos/$slug_/certificado': typeof CursosSlugCertificadoRoute
+  '/cursos/$slug_/prova': typeof CursosSlugProvaRoute
   '/cursos/$slug_/licao/$m/$l': typeof CursosSlugLicaoMLRoute
 }
 export interface FileRouteTypes {
@@ -116,6 +134,8 @@ export interface FileRouteTypes {
     | '/painel'
     | '/cursos/$slug'
     | '/cursos/'
+    | '/cursos/$slug/certificado'
+    | '/cursos/$slug/prova'
     | '/cursos/$slug/licao/$m/$l'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,6 +147,8 @@ export interface FileRouteTypes {
     | '/painel'
     | '/cursos/$slug'
     | '/cursos'
+    | '/cursos/$slug/certificado'
+    | '/cursos/$slug/prova'
     | '/cursos/$slug/licao/$m/$l'
   id:
     | '__root__'
@@ -139,6 +161,8 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/cursos/$slug'
     | '/cursos/'
+    | '/cursos/$slug_/certificado'
+    | '/cursos/$slug_/prova'
     | '/cursos/$slug_/licao/$m/$l'
   fileRoutesById: FileRoutesById
 }
@@ -151,6 +175,8 @@ export interface RootRouteChildren {
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   CursosSlugRoute: typeof CursosSlugRoute
   CursosIndexRoute: typeof CursosIndexRoute
+  CursosSlugCertificadoRoute: typeof CursosSlugCertificadoRoute
+  CursosSlugProvaRoute: typeof CursosSlugProvaRoute
   CursosSlugLicaoMLRoute: typeof CursosSlugLicaoMLRoute
 }
 
@@ -219,6 +245,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CursosSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cursos/$slug_/certificado': {
+      id: '/cursos/$slug_/certificado'
+      path: '/cursos/$slug/certificado'
+      fullPath: '/cursos/$slug/certificado'
+      preLoaderRoute: typeof CursosSlugCertificadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cursos/$slug_/prova': {
+      id: '/cursos/$slug_/prova'
+      path: '/cursos/$slug/prova'
+      fullPath: '/cursos/$slug/prova'
+      preLoaderRoute: typeof CursosSlugProvaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cursos/$slug_/licao/$m/$l': {
       id: '/cursos/$slug_/licao/$m/$l'
       path: '/cursos/$slug/licao/$m/$l'
@@ -249,6 +289,8 @@ const rootRouteChildren: RootRouteChildren = {
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   CursosSlugRoute: CursosSlugRoute,
   CursosIndexRoute: CursosIndexRoute,
+  CursosSlugCertificadoRoute: CursosSlugCertificadoRoute,
+  CursosSlugProvaRoute: CursosSlugProvaRoute,
   CursosSlugLicaoMLRoute: CursosSlugLicaoMLRoute,
 }
 export const routeTree = rootRouteImport

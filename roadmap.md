@@ -8,3 +8,8 @@
 - [x] Auditar todas as lições para eliminar a antiga divisão entre aula completa e resumo
 - [x] Testar cursos representativos de todas as áreas em celular e computador
 - [x] Índice clicável, controles de leitura, checkpoints com dicas progressivas e versão para PDF
+
+- [x] Prova final + projeto final + certificado por curso
+- [x] Banco de questoes proprio por curso (examBank)
+- [x] Tela de ajuda de atalhos, aria-live, autosave e retomada
+- [x] Impressao/PDF paginado da aula e do certificado

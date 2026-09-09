@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
@@ -157,6 +157,7 @@ function LessonPage() {
   const [secoesVistas, setSecoesVistas] = useState<string[]>([]);
   const [ultimaSecao, setUltimaSecao] = useState("aula-explicacao");
   const [retomavel, setRetomavel] = useState(false);
+  const [ajudaAberta, setAjudaAberta] = useState(false);
   const [escala, setEscala] = useState(1);
   const [contraste, setContraste] = useState(false);
   const [quebra, setQuebra] = useState(true);
@@ -197,48 +198,91 @@ function LessonPage() {
   }, [ex]);
 
   const chaveProgresso = `codding:aula:${course.slug}:${m}:${l}`;
+  const restaurado = useRef(false);
+  const [salvoEm, setSalvoEm] = useState<number | null>(null);
+  const [retomadoEm, setRetomadoEm] = useState<number | null>(null);
+  const [anuncio, setAnuncio] = useState("");
 
   useEffect(() => {
+    restaurado.current = false;
     const salvo = localStorage.getItem(chaveProgresso);
-    if (!salvo) return;
+    if (salvo) {
+      try {
+        const p = JSON.parse(salvo) as {
+          code?: string;
+          answers?: Record<number, number>;
+          guidedAnswers?: Record<number, number>;
+          completed?: number[];
+          challengeIndex?: number;
+          secoes?: string[];
+          ultima?: string;
+          updatedAt?: number;
+        };
+        if (typeof p.code === "string" && p.code.trim()) setCode(p.code);
+        if (p.answers) setAnswers(p.answers);
+        if (p.guidedAnswers) setGuidedAnswers(p.guidedAnswers);
+        if (Array.isArray(p.completed)) setCompletedChallenges(new Set(p.completed));
+        if (typeof p.challengeIndex === "number") setChallengeIndex(p.challengeIndex);
+        if (Array.isArray(p.secoes)) setSecoesVistas(p.secoes);
+        if (typeof p.ultima === "string") setUltimaSecao(p.ultima);
+        if (typeof p.updatedAt === "number") setRetomadoEm(p.updatedAt);
+        setRetomavel(
+          Boolean((p.secoes ?? []).length || (p.completed ?? []).length || Object.keys(p.answers ?? {}).length),
+        );
+      } catch {
+        /* progresso inválido é ignorado */
+      }
+    }
+    restaurado.current = true;
+  }, [chaveProgresso]);
+
+  const estadoAtual = useMemo(
+    () => ({
+      code,
+      answers,
+      guidedAnswers,
+      completed: [...completedChallenges],
+      challengeIndex,
+      secoes: secoesVistas,
+      ultima: ultimaSecao,
+    }),
+    [code, answers, guidedAnswers, completedChallenges, challengeIndex, secoesVistas, ultimaSecao],
+  );
+  const estadoRef = useRef(estadoAtual);
+  estadoRef.current = estadoAtual;
+
+  const salvarProgresso = useCallback(() => {
+    if (!restaurado.current) return;
+    const agora = Date.now();
     try {
-      const p = JSON.parse(salvo) as {
-        code?: string;
-        answers?: Record<number, number>;
-        guidedAnswers?: Record<number, number>;
-        completed?: number[];
-        challengeIndex?: number;
-        secoes?: string[];
-        ultima?: string;
-      };
-      if (typeof p.code === "string" && p.code.trim()) setCode(p.code);
-      if (p.answers) setAnswers(p.answers);
-      if (p.guidedAnswers) setGuidedAnswers(p.guidedAnswers);
-      if (Array.isArray(p.completed)) setCompletedChallenges(new Set(p.completed));
-      if (typeof p.challengeIndex === "number") setChallengeIndex(p.challengeIndex);
-      if (Array.isArray(p.secoes)) setSecoesVistas(p.secoes);
-      if (typeof p.ultima === "string") setUltimaSecao(p.ultima);
-      setRetomavel(Boolean((p.secoes ?? []).length || (p.completed ?? []).length || Object.keys(p.answers ?? {}).length));
+      localStorage.setItem(chaveProgresso, JSON.stringify({ ...estadoRef.current, updatedAt: agora }));
+      setSalvoEm(agora);
     } catch {
-      /* progresso inválido é ignorado */
+      /* armazenamento cheio ou indisponível */
     }
   }, [chaveProgresso]);
 
+  // autosave com debounce, e gravação imediata ao sair, trocar de aba ou fechar
   useEffect(() => {
-    localStorage.setItem(
-      chaveProgresso,
-      JSON.stringify({
-        code,
-        answers,
-        guidedAnswers,
-        completed: [...completedChallenges],
-        challengeIndex,
-        secoes: secoesVistas,
-        ultima: ultimaSecao,
-        updatedAt: Date.now(),
-      }),
-    );
-  }, [chaveProgresso, code, answers, guidedAnswers, completedChallenges, challengeIndex, secoesVistas, ultimaSecao]);
+    const t = setTimeout(salvarProgresso, 600);
+    return () => clearTimeout(t);
+  }, [estadoAtual, salvarProgresso]);
+
+  useEffect(() => {
+    const aoSair = () => salvarProgresso();
+    const aoTrocarAba = () => {
+      if (document.visibilityState === "hidden") salvarProgresso();
+    };
+    window.addEventListener("pagehide", aoSair);
+    window.addEventListener("beforeunload", aoSair);
+    document.addEventListener("visibilitychange", aoTrocarAba);
+    return () => {
+      window.removeEventListener("pagehide", aoSair);
+      window.removeEventListener("beforeunload", aoSair);
+      document.removeEventListener("visibilitychange", aoTrocarAba);
+      salvarProgresso();
+    };
+  }, [salvarProgresso]);
 
 
 
@@ -432,6 +476,8 @@ function LessonPage() {
     alvo.scrollIntoView({ behavior: "smooth", block: "start" });
     alvo.setAttribute("tabindex", "-1");
     alvo.focus({ preventScroll: true });
+    const nome = secoesAula.find((s) => s.id === id)?.label ?? "Índice da aula";
+    setAnuncio(`Seção ${nome}`);
     if (id !== "aula-indice") {
       setSecoesVistas((old) => (old.includes(id) ? old : [...old, id]));
       setUltimaSecao(id);
@@ -440,8 +486,18 @@ function LessonPage() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && ajudaAberta) {
+        e.preventDefault();
+        setAjudaAberta(false);
+        return;
+      }
       if (!e.altKey || e.ctrlKey || e.metaKey) return;
       const tecla = e.key.toLowerCase();
+      if (tecla === "/" || tecla === "?") {
+        e.preventDefault();
+        setAjudaAberta((v) => !v);
+        return;
+      }
       const secao = secoesAula.find((s) => s.tecla === tecla);
       if (secao) {
         e.preventDefault();
@@ -529,36 +585,113 @@ function LessonPage() {
           ))}
         </nav>
 
-        <details className="nao-imprimir mt-3 rounded-xl border border-border px-3 py-2">
-          <summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-muted-foreground">
-            <Keyboard className="h-4 w-4 text-cyan" /> Atalhos de teclado
-          </summary>
-          <ul className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-            {secoesAula.map((item) => (
-              <li key={item.id}>
-                <kbd className="rounded border border-border px-1">Alt+{item.tecla.toUpperCase()}</kbd> ir para {item.label.toLowerCase()}
-              </li>
-            ))}
-            <li><kbd className="rounded border border-border px-1">Alt+I</kbd> voltar ao índice</li>
-            <li><kbd className="rounded border border-border px-1">Alt+N</kbd> próximo passo / próxima lição</li>
-            <li><kbd className="rounded border border-border px-1">Alt+B</kbd> lição anterior</li>
-            <li><kbd className="rounded border border-border px-1">Alt+H</kbd> pedir dica</li>
-            <li><kbd className="rounded border border-border px-1">Alt+K</kbd> verificar a prática</li>
-            <li><kbd className="rounded border border-border px-1">Alt+D</kbd> baixar PDF da aula</li>
-          </ul>
-        </details>
+        <button
+          onClick={() => setAjudaAberta(true)}
+          aria-haspopup="dialog"
+          aria-keyshortcuts="Alt+/"
+          className="nao-imprimir mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 text-sm font-semibold text-muted-foreground hover:border-cyan/60 hover:text-foreground"
+        >
+          <Keyboard className="h-4 w-4 text-cyan" /> Atalhos de teclado
+          <kbd className="rounded border border-border px-1 text-xs">Alt+/</kbd>
+        </button>
+
+        {ajudaAberta && (
+          <div
+            className="nao-imprimir fixed inset-0 z-50 grid place-items-center bg-background/80 p-4"
+            onClick={() => setAjudaAberta(false)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ajuda-atalhos-titulo"
+              onClick={(e) => e.stopPropagation()}
+              className="card-soft max-h-[80dvh] w-full max-w-lg overflow-auto p-5"
+            >
+              <h2 id="ajuda-atalhos-titulo" className="inline-flex items-center gap-2 font-display text-xl font-extrabold">
+                <Keyboard className="h-5 w-5 text-cyan" /> Atalhos de teclado da aula
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Use estes atalhos para navegar pela aula sem mouse. Pressione Esc para fechar.
+              </p>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-cyan">Índice e seções</h3>
+              <ul className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+I</kbd> voltar ao índice da aula
+                </li>
+                {secoesAula.map((item) => (
+                  <li key={item.id}>
+                    <kbd className="rounded border border-border px-1.5 py-0.5">Alt+{item.tecla.toUpperCase()}</kbd> ir
+                    para {item.label.toLowerCase()}
+                  </li>
+                ))}
+              </ul>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-cyan">Próximos passos</h3>
+              <ul className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+N</kbd> próximo passo da prática ou
+                  próxima lição
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+B</kbd> lição anterior
+                </li>
+              </ul>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-cyan">Começar a prática</h3>
+              <ul className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+P</kbd> ir para a prática guiada
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+K</kbd> verificar sua resposta
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+H</kbd> pedir a próxima dica
+                </li>
+              </ul>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-cyan">Revisar e imprimir</h3>
+              <ul className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+R</kbd> ir para a revisão
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+Q</kbd> ir para o quiz
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+D</kbd> baixar PDF / imprimir a aula
+                </li>
+              </ul>
+              <button
+                autoFocus
+                onClick={() => setAjudaAberta(false)}
+                className="bg-brand mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-xl font-bold text-primary-foreground"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        )}
+
+        <p aria-live="polite" className="sr-only">
+          {anuncio}
+        </p>
 
         {retomavel && (
           <p className="nao-imprimir mt-3 inline-flex flex-wrap items-center gap-2 rounded-xl border border-cyan/50 px-4 py-3 text-sm text-cyan">
-            <Sparkles className="h-4 w-4" /> Retomamos de onde você parou nesta aula.
-            <button
-              onClick={() => irPara(ultimaSecao)}
-              className="min-h-11 font-bold underline underline-offset-4"
-            >
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <span className="min-w-0">
+              Retomar de onde parei: você estava em{" "}
+              <strong>{secoesAula.find((s) => s.id === ultimaSecao)?.label ?? "Explicação"}</strong>
+              {retomadoEm ? ` (salvo em ${new Date(retomadoEm).toLocaleString("pt-BR")})` : ""}.
+            </span>
+            <button onClick={() => irPara(ultimaSecao)} className="min-h-11 font-bold underline underline-offset-4">
               Continuar
             </button>
           </p>
         )}
+
+        <p aria-live="polite" className="nao-imprimir mt-2 text-xs text-muted-foreground">
+          {salvoEm ? `Progresso salvo automaticamente às ${new Date(salvoEm).toLocaleTimeString("pt-BR")}` : ""}
+        </p>
+
 
         {/* Controles de leitura */}
         <div className="nao-imprimir mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
@@ -1200,69 +1333,129 @@ function LessonPage() {
 
       {/* Versão para imprimir / salvar em PDF */}
       <div className="impressao px-6 py-4">
-        <h1 style={{ fontSize: "22px", fontWeight: 800 }}>{lesson}</h1>
-        <p style={{ fontSize: "12px" }}>
-          {course.title} • Módulo {m + 1}: {mod.title} • Codding
+        <h1>{lesson}</h1>
+        <p>
+          {course.title} • Módulo {m + 1}: {mod.title} • Codding — material para estudo offline
         </p>
+        <p>Aluno: ______________________________ Data: ____ / ____ / ______</p>
         {guided && (
           <>
-            <p style={{ marginTop: "10px", fontSize: "13px" }}>{guided.opening}</p>
-            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Objetivos</h2>
-            <ul>
-              {guided.objectives.map((o) => (
-                <li key={o} style={{ fontSize: "13px" }}>{o}</li>
-              ))}
-            </ul>
-            {guided.steps.map((step, index) => (
-              <section key={step.title} style={{ marginTop: "14px" }}>
-                <h2 style={{ fontSize: "15px", fontWeight: 700 }}>{index + 1}. {step.title}</h2>
-                <p style={{ fontSize: "13px", whiteSpace: "pre-line" }}>{step.explanation}</p>
-                {step.code && <pre style={{ fontSize: "12px" }}>{step.code}</pre>}
-                {step.walkthrough?.map((w) => (
-                  <p key={w.line} style={{ fontSize: "12px" }}>
-                    <strong>{w.line.trim()}</strong> — {w.explanation}
-                  </p>
+            <p>{guided.opening}</p>
+            <section>
+              <h2>Objetivos da aula</h2>
+              <ul>
+                {guided.objectives.map((o) => (
+                  <li key={o}>{o}</li>
                 ))}
-                {step.note && <p style={{ fontSize: "12px" }}>Dica: {step.note}</p>}
+              </ul>
+              <p>
+                <strong>Pré-requisito:</strong> {guided.prerequisite} • <strong>Duração:</strong> {guided.duration}
+              </p>
+            </section>
+            <h2>Explicação passo a passo</h2>
+            {guided.steps.map((step, index) => (
+              <section key={step.title}>
+                <h3>
+                  {index + 1}. {step.title}
+                </h3>
+                <p style={{ whiteSpace: "pre-line" }}>{step.explanation}</p>
+                {step.code && <pre>{step.code}</pre>}
+                {step.walkthrough && step.walkthrough.length > 0 && (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Trecho</th>
+                        <th>O que faz</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {step.walkthrough.map((w) => (
+                        <tr key={w.line}>
+                          <td>
+                            <code>{w.line.trim()}</code>
+                          </td>
+                          <td>{w.explanation}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {step.note && <p>Dica: {step.note}</p>}
                 {step.check && (
-                  <p style={{ fontSize: "12px" }}>
-                    Checkpoint: {step.check.question} — Resposta: {step.check.options[step.check.answer]}
+                  <p>
+                    Checkpoint: {step.check.question} — <strong>Resposta:</strong>{" "}
+                    {step.check.options[step.check.answer]}
                   </p>
                 )}
               </section>
             ))}
-            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Prática</h2>
-            {guided.challenges.map((challenge) => (
-              <section key={challenge.title} style={{ marginTop: "8px" }}>
-                <h3 style={{ fontSize: "13px", fontWeight: 700 }}>{challenge.title}</h3>
-                <p style={{ fontSize: "12px" }}>{challenge.instruction}</p>
-                <pre style={{ fontSize: "12px" }}>{challenge.starter}</pre>
-                <p style={{ fontSize: "12px" }}>Dica: {challenge.hint}</p>
+            <h2 className="quebra-pagina">Prática guiada</h2>
+            {guided.challenges.map((challenge, index) => (
+              <section key={challenge.title}>
+                <h3>
+                  {index + 1}. {challenge.title}
+                </h3>
+                <p>{challenge.instruction}</p>
+                <pre>{challenge.starter}</pre>
+                <p>Dica: {challenge.hint}</p>
+                {challenge.expected && (
+                  <p>
+                    <strong>Saída esperada:</strong> {challenge.expected}
+                  </p>
+                )}
               </section>
             ))}
-            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Revisão</h2>
-            <ul>
-              {guided.recap.map((r) => (
-                <li key={r} style={{ fontSize: "13px" }}>{r}</li>
-              ))}
-            </ul>
+            <section>
+              <h2>Revisão</h2>
+              <ul>
+                {guided.recap.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </section>
           </>
         )}
-        <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Quiz e gabarito</h2>
+        <section>
+          <h2>Exemplo comentado</h2>
+          <pre>{content.example.code}</pre>
+          <p>{content.example.explain}</p>
+        </section>
+        <section>
+          <h2>Erros comuns</h2>
+          <ul>
+            {content.topic.pitfalls.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+        </section>
+        <h2 className="quebra-pagina">Quiz e gabarito completo</h2>
         <ol>
-          {content.quiz.map((q) => (
-            <li key={q.q} style={{ fontSize: "13px", marginBottom: "6px" }}>
-              <span>{q.q}</span>
-              <br />
-              <span style={{ fontSize: "12px" }}>Opções: {q.options.join(" | ")}</span>
-              <br />
-              <span style={{ fontSize: "12px" }}>
-                <strong>Gabarito:</strong> {q.options[q.answer]} — {q.why}
-              </span>
+          {content.quiz.map((q, i) => (
+            <li key={q.q} style={{ marginBottom: "4mm" }}>
+              <p>
+                <strong>
+                  {i + 1}. {q.q}
+                </strong>
+              </p>
+              <ul>
+                {q.options.map((opt, oi) => (
+                  <li key={opt}>
+                    {String.fromCharCode(97 + oi)}) {opt}
+                  </li>
+                ))}
+              </ul>
+              <p>
+                <strong>Gabarito:</strong> {String.fromCharCode(97 + q.answer)}) {q.options[q.answer]} — {q.why}
+              </p>
             </li>
           ))}
         </ol>
+        <p className="rodape-impressao">
+          Codding • {course.title} • {lesson} • Prova final e certificado em codding.lovable.app/cursos/{course.slug}
+          /prova
+        </p>
       </div>
+
     </div>
 
     </div>
