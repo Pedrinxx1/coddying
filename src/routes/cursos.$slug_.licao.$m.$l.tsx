@@ -9,18 +9,25 @@ import {
   CheckCircle2,
   ChevronDown,
   CircleDashed,
+  Contrast,
   Lightbulb,
   ListChecks,
   Loader2,
+  Minus,
   Play,
   PlayCircle,
+  Plus,
+  Printer,
   Send,
   ShieldCheck,
   Sparkles,
   Target,
   Terminal,
+  Type,
+  WrapText,
   XCircle,
 } from "lucide-react";
+
 import { SiteHeader } from "@/components/SiteHeader";
 import { countLessons, getCourse } from "@/data/courses";
 import { lessonContent } from "@/data/lessonContent";
@@ -136,8 +143,28 @@ function LessonPage() {
   const [guidedAnswers, setGuidedAnswers] = useState<Record<number, number>>({});
   const [challengeIndex, setChallengeIndex] = useState(0);
   const [completedChallenges, setCompletedChallenges] = useState<Set<number>>(new Set());
-  const [showHint, setShowHint] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
+  const [escala, setEscala] = useState(1);
+  const [contraste, setContraste] = useState(false);
+  const [quebra, setQuebra] = useState(true);
   const run = useServerFn(runCode);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("codding:leitura");
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as { escala?: number; contraste?: boolean; quebra?: boolean };
+      if (typeof parsed.escala === "number") setEscala(parsed.escala);
+      if (typeof parsed.contraste === "boolean") setContraste(parsed.contraste);
+      if (typeof parsed.quebra === "boolean") setQuebra(parsed.quebra);
+    } catch {
+      /* preferências inválidas são ignoradas */
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("codding:leitura", JSON.stringify({ escala, contraste, quebra }));
+  }, [escala, contraste, quebra]);
 
   useEffect(() => {
     setCode(ex.starter);
@@ -150,8 +177,9 @@ function LessonPage() {
     setGuidedAnswers({});
     setChallengeIndex(0);
     setCompletedChallenges(new Set());
-    setShowHint(false);
+    setHintLevel(0);
   }, [ex]);
+
 
   useEffect(() => {
     if (!user) {
@@ -283,6 +311,36 @@ function LessonPage() {
   const guidedCompleted = guidedCorrect + completedChallenges.size;
   const guidedReady = !guided || guidedCompleted === guidedTotal;
 
+  const dicas = useMemo(() => {
+    if (!activeChallenge) return [] as string[];
+    const lista = [
+      `Releia o objetivo com calma: ${activeChallenge.instruction}`,
+      activeChallenge.hint,
+    ];
+    lista.push(
+      isReflection
+        ? "Escreva em três partes: a decisão que você tomaria, o motivo dela e como conferiria o resultado."
+        : activeChallenge.expected && activeChallenge.expected !== "\n"
+          ? `A resposta precisa produzir “${activeChallenge.expected}”. Compare linha a linha com o exemplo resolvido da aula.`
+          : "Volte ao exemplo resolvido da aula e reproduza a mesma estrutura, trocando só os valores.",
+    );
+    return lista;
+  }, [activeChallenge, isReflection]);
+
+  const checkpoints = useMemo(() => {
+    const escreveu = code.trim().length > 0 && code.trim() !== (activeChallenge?.starter ?? ex.starter).trim();
+    const semLacunas = !/____|\.\.\.|escreva aqui/i.test(code);
+    const executou = output !== null;
+    const acertou = guided ? completedChallenges.has(challengeIndex) : status === "ok";
+    return [
+      { label: escreveu ? "Você já escreveu sua própria versão" : "Escreva sua versão a partir do modelo", ok: escreveu },
+      { label: semLacunas ? "Nenhuma lacuna deixada em branco" : "Ainda há lacunas para preencher (____)", ok: semLacunas },
+      { label: executou ? (isReflection ? "Análise revisada" : "Código executado") : isReflection ? "Clique em revisar análise" : "Clique em verificar para executar", ok: executou },
+      { label: acertou ? "Resultado conferido e correto" : "Resultado ainda não confere com o esperado", ok: acertou },
+    ];
+  }, [code, activeChallenge, ex.starter, output, guided, completedChallenges, challengeIndex, status, isReflection]);
+
+
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-0">
       <SiteHeader crumb={course.title} />
@@ -313,6 +371,69 @@ function LessonPage() {
         {content.topic.title.toLocaleLowerCase("pt-BR") !== lesson.toLocaleLowerCase("pt-BR") && (
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Parte de: {content.topic.title}</p>
         )}
+
+        {/* Índice clicável das seções da aula */}
+        <nav aria-label="Seções da aula" className="nao-imprimir mt-5 flex flex-wrap gap-2">
+          {[
+            { id: "aula-explicacao", label: "Explicação" },
+            { id: "aula-exemplo", label: "Exemplo" },
+            { id: "aula-pratica", label: "Prática" },
+            { id: "aula-quiz", label: "Quiz" },
+            { id: "aula-videos", label: "Vídeos" },
+            { id: "aula-revisao", label: "Revisão" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="min-h-11 rounded-full border border-border px-4 text-sm font-semibold text-muted-foreground hover:border-cyan/60 hover:text-foreground"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Controles de leitura */}
+        <div className="nao-imprimir mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
+          <span className="inline-flex items-center gap-2 text-xs font-bold uppercase text-cyan">
+            <Type className="h-4 w-4" /> Leitura
+          </span>
+          <button
+            onClick={() => setEscala((v) => Math.max(0.85, Number((v - 0.1).toFixed(2))))}
+            aria-label="Diminuir tamanho da letra"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <span className="text-xs font-semibold text-muted-foreground">{Math.round(escala * 100)}%</span>
+          <button
+            onClick={() => setEscala((v) => Math.min(1.6, Number((v + 0.1).toFixed(2))))}
+            aria-label="Aumentar tamanho da letra"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setContraste((v) => !v)}
+            aria-pressed={contraste}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold ${contraste ? "border-cyan text-cyan" : "border-border text-muted-foreground"}`}
+          >
+            <Contrast className="h-4 w-4" /> Alto contraste
+          </button>
+          <button
+            onClick={() => setQuebra((v) => !v)}
+            aria-pressed={quebra}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold ${quebra ? "border-cyan text-cyan" : "border-border text-muted-foreground"}`}
+          >
+            <WrapText className="h-4 w-4" /> Quebra de linha
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+          >
+            <Printer className="h-4 w-4" /> Baixar PDF da aula
+          </button>
+        </div>
+
 
         {/* Índice do módulo — navegação rápida entre lições */}
         <div className="card-soft mt-5 overflow-hidden p-0">
@@ -388,14 +509,19 @@ function LessonPage() {
         )}
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)] lg:gap-10">
-          <article className="min-w-0 space-y-8">
+          <article
+            className={`min-w-0 space-y-8 leitura ${contraste ? "leitura-contraste" : ""} ${quebra ? "leitura-quebra" : ""}`}
+            style={{ ["--leitura-escala" as string]: escala }}
+          >
             {guided ? (
-              <div className="space-y-10">
+              <div id="aula-explicacao" className="scroll-mt-24 space-y-10">
                 {guided.steps.map((step, index) => {
                   const selected = guidedAnswers[index];
                   const answered = selected !== undefined;
+                  const exemplo = Boolean(step.code) && guided.steps.findIndex((s) => s.code) === index;
                   return (
-                    <section key={step.title} className="overflow-hidden rounded-xl border border-border bg-surface px-5 py-6 sm:px-7 sm:py-8">
+
+                    <section key={step.title} {...(exemplo ? { id: "aula-exemplo" } : {})} className="scroll-mt-24 overflow-hidden rounded-xl border border-border bg-surface px-5 py-6 sm:px-7 sm:py-8">
                       <div className="flex items-center gap-3">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan/50 text-xs font-bold text-cyan">{index + 1}</span>
                         <p className="text-xs font-bold uppercase text-cyan">{step.eyebrow}</p>
@@ -446,14 +572,14 @@ function LessonPage() {
                     </section>
                   );
                 })}
-                <section className="border-t border-border pt-8">
+                <section id="aula-revisao" className="scroll-mt-24 border-t border-border pt-8">
                   <h2 className="text-xl font-bold">O que você aprendeu</h2>
                   <ul className="mt-4 space-y-3">
                     {guided.recap.map((item) => <li key={item} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />{item}</li>)}
                   </ul>
                 </section>
               </div>
-            ) : <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+            ) : <div id="aula-explicacao" className="scroll-mt-24 overflow-hidden rounded-2xl border border-border bg-surface">
               {content.sections.map((s, index) => (
                 <section
                   key={`${s.kind}-${index}`}
@@ -466,7 +592,7 @@ function LessonPage() {
               ))}
             </div>}
 
-            <section className="card-soft p-5 sm:p-6">
+            <section id="aula-videos" className="card-soft scroll-mt-24 p-5 sm:p-6">
               <div className="flex items-center gap-2">
                 <PlayCircle className="h-4 w-4 shrink-0 text-violet" />
                 <h2 className="font-display text-base font-bold sm:text-lg">Videoaulas sobre este tema</h2>
@@ -494,7 +620,7 @@ function LessonPage() {
               </div>
             </section>
 
-            {!guided && <section className="card-soft overflow-hidden p-0">
+            {!guided && <section id="aula-exemplo" className="card-soft scroll-mt-24 overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
                 <h2 className="font-display text-base font-bold sm:text-lg">Exemplo comentado</h2>
                 <p className="mt-1 text-xs text-muted-foreground">{content.example.language}</p>
@@ -520,7 +646,8 @@ function LessonPage() {
               </div>
             </section>}
 
-            <section className="card-soft p-5 sm:p-6">
+            <section id="aula-quiz" className="card-soft scroll-mt-24 p-5 sm:p-6">
+
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                 <h2 className="font-display text-base font-bold sm:text-lg">Quiz rápido</h2>
                 <span className="shrink-0 text-xs text-muted-foreground">
@@ -632,7 +759,7 @@ function LessonPage() {
             )}
           </article>
 
-          <div className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <div id="aula-pratica" className="min-w-0 scroll-mt-24 space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div className="card-soft overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
                 <h2 className="font-display text-base font-bold sm:text-lg">{activeChallenge?.title ?? "Exercício"}</h2>
@@ -640,7 +767,7 @@ function LessonPage() {
                 {guided && (
                   <div className="mt-4 grid grid-cols-4 gap-2" aria-label="Desafios da aula">
                     {guided.challenges.map((challenge, index) => (
-                      <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus(completedChallenges.has(index) ? "ok" : "idle"); setOutput(null); setShowHint(false); }} className="min-w-0 px-2">{completedChallenges.has(index) ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</Button>
+                      <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus(completedChallenges.has(index) ? "ok" : "idle"); setOutput(null); setHintLevel(0); }} className="min-w-0 px-2">{completedChallenges.has(index) ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</Button>
                     ))}
                   </div>
                 )}
@@ -666,13 +793,44 @@ function LessonPage() {
                 >
                   Recomeçar
                 </button>
-                {activeChallenge && <Button variant="ghost" size="sm" onClick={() => setShowHint((value) => !value)}><Lightbulb className="h-3.5 w-3.5" /> Dica</Button>}
+                {activeChallenge && (
+                  <Button variant="ghost" size="sm" onClick={() => setHintLevel((v) => Math.min(v + 1, dicas.length))}>
+                    <Lightbulb className="h-3.5 w-3.5" /> {hintLevel === 0 ? "Pedir dica" : hintLevel >= dicas.length ? "Todas as dicas" : `Mais uma dica (${hintLevel}/${dicas.length})`}
+                  </Button>
+                )}
                 <Link to="/playground" className="ml-auto text-xs font-semibold text-cyan">
                   Abrir no playground
                 </Link>
               </div>
 
-              {showHint && activeChallenge && <p className="border-t border-border px-4 py-3 text-sm leading-6 text-warn">{activeChallenge.hint}</p>}
+              {hintLevel > 0 && activeChallenge && (
+                <ol className="border-t border-border px-4 py-3">
+                  {dicas.slice(0, hintLevel).map((dica, index) => (
+                    <li key={dica} className="mt-1 flex items-start gap-2 text-sm leading-6 text-warn first:mt-0">
+                      <span className="mt-1 text-xs font-bold">{index + 1}.</span>
+                      <span className="min-w-0 break-words">{dica}</span>
+                    </li>
+                  ))}
+                  {hintLevel < dicas.length && (
+                    <li className="mt-2 text-xs text-muted-foreground">Tente de novo antes de abrir a próxima dica.</li>
+                  )}
+                </ol>
+              )}
+
+              <ul className="border-t border-border px-4 py-3">
+                <li className="mb-2 text-xs font-bold uppercase text-violet">Checkpoints da prática</li>
+                {checkpoints.map((cp) => (
+                  <li key={cp.label} className="flex items-start gap-2 py-1 text-sm leading-6">
+                    {cp.ok ? (
+                      <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />
+                    ) : (
+                      <CircleDashed className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className={`min-w-0 break-words ${cp.ok ? "text-success" : "text-muted-foreground"}`}>{cp.label}</span>
+                  </li>
+                ))}
+              </ul>
+
 
               {isWeb ? (
                 srcDoc && (
@@ -840,8 +998,75 @@ function LessonPage() {
           ) : (
             <span className="h-10 w-10" />
           )}
-        </div>
       </div>
+
+      {/* Versão para imprimir / salvar em PDF */}
+      <div className="impressao px-6 py-4">
+        <h1 style={{ fontSize: "22px", fontWeight: 800 }}>{lesson}</h1>
+        <p style={{ fontSize: "12px" }}>
+          {course.title} • Módulo {m + 1}: {mod.title} • Codding
+        </p>
+        {guided && (
+          <>
+            <p style={{ marginTop: "10px", fontSize: "13px" }}>{guided.opening}</p>
+            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Objetivos</h2>
+            <ul>
+              {guided.objectives.map((o) => (
+                <li key={o} style={{ fontSize: "13px" }}>{o}</li>
+              ))}
+            </ul>
+            {guided.steps.map((step, index) => (
+              <section key={step.title} style={{ marginTop: "14px" }}>
+                <h2 style={{ fontSize: "15px", fontWeight: 700 }}>{index + 1}. {step.title}</h2>
+                <p style={{ fontSize: "13px", whiteSpace: "pre-line" }}>{step.explanation}</p>
+                {step.code && <pre style={{ fontSize: "12px" }}>{step.code}</pre>}
+                {step.walkthrough?.map((w) => (
+                  <p key={w.line} style={{ fontSize: "12px" }}>
+                    <strong>{w.line.trim()}</strong> — {w.explanation}
+                  </p>
+                ))}
+                {step.note && <p style={{ fontSize: "12px" }}>Dica: {step.note}</p>}
+                {step.check && (
+                  <p style={{ fontSize: "12px" }}>
+                    Checkpoint: {step.check.question} — Resposta: {step.check.options[step.check.answer]}
+                  </p>
+                )}
+              </section>
+            ))}
+            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Prática</h2>
+            {guided.challenges.map((challenge) => (
+              <section key={challenge.title} style={{ marginTop: "8px" }}>
+                <h3 style={{ fontSize: "13px", fontWeight: 700 }}>{challenge.title}</h3>
+                <p style={{ fontSize: "12px" }}>{challenge.instruction}</p>
+                <pre style={{ fontSize: "12px" }}>{challenge.starter}</pre>
+                <p style={{ fontSize: "12px" }}>Dica: {challenge.hint}</p>
+              </section>
+            ))}
+            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Revisão</h2>
+            <ul>
+              {guided.recap.map((r) => (
+                <li key={r} style={{ fontSize: "13px" }}>{r}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Quiz e gabarito</h2>
+        <ol>
+          {content.quiz.map((q) => (
+            <li key={q.q} style={{ fontSize: "13px", marginBottom: "6px" }}>
+              <span>{q.q}</span>
+              <br />
+              <span style={{ fontSize: "12px" }}>Opções: {q.options.join(" | ")}</span>
+              <br />
+              <span style={{ fontSize: "12px" }}>
+                <strong>Gabarito:</strong> {q.options[q.answer]} — {q.why}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+
     </div>
   );
 }
