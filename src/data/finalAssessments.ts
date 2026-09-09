@@ -33,12 +33,26 @@ function combina(q: QuizQuestion, lang: string) {
   return !outras.some((n) => texto.includes(` ${n}`) || texto.includes(`em ${n}`));
 }
 
+const semAcento = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** A lição só entra na prova quando o tópico encontrado realmente fala do assunto dela. */
+function topicoRelevante(lessonTitle: string, topicKeys: string[], topicTitle: string) {
+  const alvo = semAcento(`${lessonTitle}`);
+  if (topicKeys.some((k) => alvo.includes(semAcento(k)))) return true;
+  const palavras = semAcento(topicTitle)
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 4);
+  return palavras.some((w) => alvo.includes(w));
+}
+
 export function finalExam(course: Course): QuizQuestion[] {
   const seen = new Set<string>();
   const pool: QuizQuestion[] = [];
   for (const mod of course.modules) {
     for (const lesson of mod.lessons) {
       const topic = findTopic(lesson, mod.title, course.lang);
+      if (!topicoRelevante(lesson, topic.keys, topic.title)) continue;
       for (const q of topic.quiz) {
         if (seen.has(q.q)) continue;
         seen.add(q.q);
