@@ -157,6 +157,7 @@ function LessonPage() {
   const [secoesVistas, setSecoesVistas] = useState<string[]>([]);
   const [ultimaSecao, setUltimaSecao] = useState("aula-explicacao");
   const [retomavel, setRetomavel] = useState(false);
+  const [ajudaAberta, setAjudaAberta] = useState(false);
   const [escala, setEscala] = useState(1);
   const [contraste, setContraste] = useState(false);
   const [quebra, setQuebra] = useState(true);
