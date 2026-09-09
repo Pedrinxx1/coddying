@@ -156,8 +156,14 @@ function ExamPage() {
     setSalvando(false);
     if (error) {
       setAviso("Não conseguimos emitir o certificado agora. Tente novamente em instantes.");
+      toast.error("Não conseguimos emitir o certificado agora.");
       return;
     }
+    setJaAprovado(true);
+    toast.success("Certificado disponível!", {
+      description: `Você foi aprovado em ${course.title} com ${acertos} de ${exam.length} e o projeto final foi entregue. Já dá para imprimir ou salvar em PDF.`,
+      duration: 8000,
+    });
     void navigate({ to: "/cursos/$slug/certificado", params: { slug: course.slug } });
   }
 
