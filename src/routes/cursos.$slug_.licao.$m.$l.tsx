@@ -486,8 +486,18 @@ function LessonPage() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && ajudaAberta) {
+        e.preventDefault();
+        setAjudaAberta(false);
+        return;
+      }
       if (!e.altKey || e.ctrlKey || e.metaKey) return;
       const tecla = e.key.toLowerCase();
+      if (tecla === "/" || tecla === "?") {
+        e.preventDefault();
+        setAjudaAberta((v) => !v);
+        return;
+      }
       const secao = secoesAula.find((s) => s.tecla === tecla);
       if (secao) {
         e.preventDefault();
