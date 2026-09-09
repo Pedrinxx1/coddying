@@ -847,8 +847,75 @@ function LessonPage() {
           ) : (
             <span className="h-10 w-10" />
           )}
-        </div>
       </div>
+
+      {/* Versão para imprimir / salvar em PDF */}
+      <div className="impressao px-6 py-4">
+        <h1 style={{ fontSize: "22px", fontWeight: 800 }}>{lesson}</h1>
+        <p style={{ fontSize: "12px" }}>
+          {course.title} • Módulo {m + 1}: {mod.title} • Codding
+        </p>
+        {guided && (
+          <>
+            <p style={{ marginTop: "10px", fontSize: "13px" }}>{guided.opening}</p>
+            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Objetivos</h2>
+            <ul>
+              {guided.objectives.map((o) => (
+                <li key={o} style={{ fontSize: "13px" }}>{o}</li>
+              ))}
+            </ul>
+            {guided.steps.map((step, index) => (
+              <section key={step.title} style={{ marginTop: "14px" }}>
+                <h2 style={{ fontSize: "15px", fontWeight: 700 }}>{index + 1}. {step.title}</h2>
+                <p style={{ fontSize: "13px", whiteSpace: "pre-line" }}>{step.explanation}</p>
+                {step.code && <pre style={{ fontSize: "12px" }}>{step.code}</pre>}
+                {step.walkthrough?.map((w) => (
+                  <p key={w.line} style={{ fontSize: "12px" }}>
+                    <strong>{w.line.trim()}</strong> — {w.explanation}
+                  </p>
+                ))}
+                {step.note && <p style={{ fontSize: "12px" }}>Dica: {step.note}</p>}
+                {step.check && (
+                  <p style={{ fontSize: "12px" }}>
+                    Checkpoint: {step.check.question} — Resposta: {step.check.options[step.check.answer]}
+                  </p>
+                )}
+              </section>
+            ))}
+            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Prática</h2>
+            {guided.challenges.map((challenge) => (
+              <section key={challenge.title} style={{ marginTop: "8px" }}>
+                <h3 style={{ fontSize: "13px", fontWeight: 700 }}>{challenge.title}</h3>
+                <p style={{ fontSize: "12px" }}>{challenge.instruction}</p>
+                <pre style={{ fontSize: "12px" }}>{challenge.starter}</pre>
+                <p style={{ fontSize: "12px" }}>Dica: {challenge.hint}</p>
+              </section>
+            ))}
+            <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Revisão</h2>
+            <ul>
+              {guided.recap.map((r) => (
+                <li key={r} style={{ fontSize: "13px" }}>{r}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        <h2 style={{ marginTop: "14px", fontSize: "16px", fontWeight: 700 }}>Quiz e gabarito</h2>
+        <ol>
+          {content.quiz.map((q) => (
+            <li key={q.q} style={{ fontSize: "13px", marginBottom: "6px" }}>
+              <span>{q.q}</span>
+              <br />
+              <span style={{ fontSize: "12px" }}>Opções: {q.options.join(" | ")}</span>
+              <br />
+              <span style={{ fontSize: "12px" }}>
+                <strong>Gabarito:</strong> {q.options[q.answer]} — {q.why}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+
     </div>
   );
 }
