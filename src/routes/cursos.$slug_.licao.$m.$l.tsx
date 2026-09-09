@@ -178,7 +178,56 @@ function LessonPage() {
     setChallengeIndex(0);
     setCompletedChallenges(new Set());
     setHintLevel(0);
+    setSecoesVistas([]);
+    setUltimaSecao("aula-explicacao");
+    setRetomavel(false);
   }, [ex]);
+
+  const chaveProgresso = `codding:aula:${course.slug}:${m}:${l}`;
+
+  useEffect(() => {
+    const salvo = localStorage.getItem(chaveProgresso);
+    if (!salvo) return;
+    try {
+      const p = JSON.parse(salvo) as {
+        code?: string;
+        answers?: Record<number, number>;
+        guidedAnswers?: Record<number, number>;
+        completed?: number[];
+        challengeIndex?: number;
+        secoes?: string[];
+        ultima?: string;
+      };
+      if (typeof p.code === "string" && p.code.trim()) setCode(p.code);
+      if (p.answers) setAnswers(p.answers);
+      if (p.guidedAnswers) setGuidedAnswers(p.guidedAnswers);
+      if (Array.isArray(p.completed)) setCompletedChallenges(new Set(p.completed));
+      if (typeof p.challengeIndex === "number") setChallengeIndex(p.challengeIndex);
+      if (Array.isArray(p.secoes)) setSecoesVistas(p.secoes);
+      if (typeof p.ultima === "string") setUltimaSecao(p.ultima);
+      setRetomavel(Boolean((p.secoes ?? []).length || (p.completed ?? []).length || Object.keys(p.answers ?? {}).length));
+    } catch {
+      /* progresso inválido é ignorado */
+    }
+  }, [chaveProgresso]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      chaveProgresso,
+      JSON.stringify({
+        code,
+        answers,
+        guidedAnswers,
+        completed: [...completedChallenges],
+        challengeIndex,
+        secoes: secoesVistas,
+        ultima: ultimaSecao,
+        updatedAt: Date.now(),
+      }),
+    );
+  }, [chaveProgresso, code, answers, guidedAnswers, completedChallenges, challengeIndex, secoesVistas, ultimaSecao]);
+
+
 
 
   useEffect(() => {
