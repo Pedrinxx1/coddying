@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 function LessonText({ body }: { body: string }) {
   const blocks = body.split(/\n+/).map((block) => block.trim()).filter(Boolean);
   const bullets = blocks.filter((block) => block.startsWith("•"));
+  const numbered = blocks.filter((block) => /^\d+[.)]\s/.test(block));
 
   if (bullets.length === blocks.length && bullets.length > 0) {
     return (
@@ -46,6 +47,19 @@ function LessonText({ body }: { body: string }) {
           </li>
         ))}
       </ul>
+    );
+  }
+
+  if (numbered.length === blocks.length && numbered.length > 0) {
+    return (
+      <ol className="mt-4 space-y-3 text-[15px] leading-7 text-muted-foreground sm:text-base">
+        {numbered.map((item, index) => (
+          <li key={item} className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-bold text-cyan">{index + 1}</span>
+            <span className="min-w-0 break-words">{item.replace(/^\d+[.)]\s*/, "")}</span>
+          </li>
+        ))}
+      </ol>
     );
   }
 
@@ -163,7 +177,9 @@ function LessonPage() {
 
   const activeChallenge = guided?.challenges[challengeIndex];
   const activeExpected = activeChallenge?.expected ?? ex.expected;
-  const isWeb = activeExpected === null;
+  const activityMode = activeChallenge?.mode ?? (ex.language === "html" ? "preview" : "code");
+  const isWeb = activityMode === "preview";
+  const isReflection = activityMode === "reflection";
   const total = countLessons(course);
   const pct = total ? Math.round((feitas.size / total) * 100) : 0;
   const erradas = content.quiz
@@ -189,6 +205,14 @@ function LessonPage() {
   }, [course, m, l]);
 
   async function check() {
+    if (isReflection) {
+      const usefulText = code.replace(/[#/*\-]/g, "").trim();
+      const correct = usefulText.length >= 80 && !/____|\.\.\.|complete|escreva aqui/i.test(usefulText);
+      setOutput(correct ? "Análise registrada. Você apresentou uma decisão com justificativa suficiente." : "Desenvolva sua resposta com uma decisão, o motivo e como você verificaria o resultado.");
+      setStatus(correct ? "ok" : "fail");
+      if (correct && guided) setCompletedChallenges((old) => new Set(old).add(challengeIndex));
+      return;
+    }
     if (isWeb) {
       setSrcDoc(code);
       setStatus("ok");
@@ -202,9 +226,12 @@ function LessonPage() {
       setOutput(out);
       const normalizedOutput = out.replace(/\r/g, "").trim();
       const hasPlaceholder = /____|\.\.\.|# crie|# complete/i.test(code);
-      const correct = !hasPlaceholder && (activeExpected === "\n"
-        ? normalizedOutput.split("\n").filter(Boolean).length >= 2
-        : normalizedOutput.includes(activeExpected ?? ""));
+      const ranWithoutError = !res.stderr && !res.error;
+      const correct = !hasPlaceholder && (activeExpected === null
+        ? ranWithoutError
+        : activeExpected === "\n"
+          ? normalizedOutput.split("\n").filter(Boolean).length >= 2
+          : normalizedOutput.includes(activeExpected));
       setStatus(correct ? "ok" : "fail");
       if (correct && guided) setCompletedChallenges((old) => new Set(old).add(challengeIndex));
     } catch {
@@ -332,6 +359,8 @@ function LessonPage() {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground">
                   <span>{guided.level}</span><span>{guided.duration}</span><span>{guided.steps.length} etapas práticas</span>
                 </div>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">{guided.opening}</p>
+                <p className="mt-3 border-l-2 border-cyan pl-3 text-xs leading-5 text-muted-foreground"><span className="font-bold text-foreground">Antes de começar:</span> {guided.prerequisite}</p>
                 <h2 className="mt-2 text-lg font-bold">Ao terminar, você vai conseguir</h2>
                 <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                   {guided.objectives.map((objective) => (
@@ -341,6 +370,14 @@ function LessonPage() {
                     </li>
                   ))}
                 </ul>
+                <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                  {guided.mentalModel.map((item, index) => (
+                    <div key={item.label} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-lg border border-border p-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-bold text-cyan">{index + 1}</span>
+                      <div className="min-w-0"><p className="text-sm font-bold">{item.label}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p></div>
+                    </div>
+                  ))}
+                </div>
                 <div className="mt-5 flex items-center gap-3">
                   <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2"><div className="h-full bg-brand transition-all" style={{ width: `${guidedTotal ? (guidedCompleted / guidedTotal) * 100 : 0}%` }} /></div>
                   <span className="shrink-0 text-xs font-bold text-cyan">{guidedCompleted}/{guidedTotal} atividades</span>
@@ -358,20 +395,33 @@ function LessonPage() {
                   const selected = guidedAnswers[index];
                   const answered = selected !== undefined;
                   return (
-                    <section key={step.title} className="border-b border-border pb-10 last:border-0">
+                    <section key={step.title} className="overflow-hidden rounded-xl border border-border bg-surface px-5 py-6 sm:px-7 sm:py-8">
                       <div className="flex items-center gap-3">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan/50 text-xs font-bold text-cyan">{index + 1}</span>
                         <p className="text-xs font-bold uppercase text-cyan">{step.eyebrow}</p>
                       </div>
                       <h2 className="mt-4 text-xl font-bold leading-snug sm:text-2xl">{step.title}</h2>
-                      <p className="mt-3 text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8">{step.explanation}</p>
+                      <LessonText body={step.explanation} />
                       {step.code && (
                         <div className="mt-5 overflow-hidden rounded-lg border border-border bg-surface">
                           <div className="flex items-center justify-between border-b border-border px-4 py-2 text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-2"><Terminal className="h-3.5 w-3.5" /> Python</span>
+                            <span className="inline-flex items-center gap-2"><Terminal className="h-3.5 w-3.5" /> {guided.language}</span>
                             <Button variant="ghost" size="sm" onClick={() => { setCode(step.code ?? ""); setStatus("idle"); setOutput(null); }}>Testar no editor</Button>
                           </div>
                           <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-6"><code>{step.code}</code></pre>
+                        </div>
+                      )}
+                      {step.walkthrough && step.walkthrough.length > 0 && (
+                        <div className="mt-4 overflow-hidden rounded-lg border border-border">
+                          <div className="border-b border-border px-4 py-3"><p className="text-xs font-bold uppercase text-violet">Leitura linha por linha</p></div>
+                          <ol className="divide-y divide-border">
+                            {step.walkthrough.map((item, lineIndex) => (
+                              <li key={`${item.line}-${lineIndex}`} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(10rem,0.8fr)_minmax(0,1.2fr)]">
+                                <code className="min-w-0 overflow-x-auto font-mono text-xs text-cyan">{item.line.trim()}</code>
+                                <p className="text-xs leading-5 text-muted-foreground">{item.explanation}</p>
+                              </li>
+                            ))}
+                          </ol>
                         </div>
                       )}
                       {step.note && <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-muted-foreground"><Lightbulb className="mt-1 h-4 w-4 shrink-0 text-warn" />{step.note}</p>}
@@ -416,7 +466,7 @@ function LessonPage() {
               ))}
             </div>}
 
-            {!guided && <section className="card-soft p-5 sm:p-6">
+            <section className="card-soft p-5 sm:p-6">
               <div className="flex items-center gap-2">
                 <PlayCircle className="h-4 w-4 shrink-0 text-violet" />
                 <h2 className="font-display text-base font-bold sm:text-lg">Videoaulas sobre este tema</h2>
@@ -442,7 +492,7 @@ function LessonPage() {
                   </a>
                 ))}
               </div>
-            </section>}
+            </section>
 
             {!guided && <section className="card-soft overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
@@ -470,7 +520,7 @@ function LessonPage() {
               </div>
             </section>}
 
-            {!guided && <section className="card-soft p-5 sm:p-6">
+            <section className="card-soft p-5 sm:p-6">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                 <h2 className="font-display text-base font-bold sm:text-lg">Quiz rápido</h2>
                 <span className="shrink-0 text-xs text-muted-foreground">
@@ -562,7 +612,7 @@ function LessonPage() {
                   </button>
                 </div>
               )}
-            </section>}
+            </section>
 
             <button
               onClick={toggleDone}
@@ -599,7 +649,7 @@ function LessonPage() {
                 value={code}
                 spellCheck={false}
                 onChange={(e) => setCode(e.target.value)}
-                className="min-h-[220px] w-full resize-y bg-surface/60 px-4 py-3 font-mono text-[13px] leading-6 text-foreground outline-none sm:min-h-[240px] sm:text-sm"
+                className={`min-h-[220px] w-full resize-y bg-surface/60 px-4 py-3 text-[13px] leading-6 text-foreground outline-none sm:min-h-[240px] sm:text-sm ${isReflection ? "font-sans" : "font-mono"}`}
               />
               <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
                 <button
@@ -608,7 +658,7 @@ function LessonPage() {
                   className="bg-brand inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-60"
                 >
                   {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                  {isWeb ? "Rodar" : "Verificar resposta"}
+                   {isWeb ? "Ver resultado" : isReflection ? "Revisar análise" : "Verificar resposta"}
                 </button>
                 <button
                   onClick={() => setCode(activeChallenge?.starter ?? ex.starter)}
@@ -651,7 +701,7 @@ function LessonPage() {
                     </pre>
                   )}
                   {!output && status === "idle" && (
-                    <p className="text-sm text-muted-foreground">Escreva sua solução e clique em Verificar.</p>
+                    <p className="text-sm text-muted-foreground">{isReflection ? "Escreva sua decisão, justifique e diga como verificaria o resultado." : "Escreva sua solução e clique em Verificar."}</p>
                   )}
                 </div>
               )}
