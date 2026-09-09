@@ -53,6 +53,10 @@ export function finalExam(course: Course): QuizQuestion[] {
     for (const lesson of mod.lessons) {
       const topic = findTopic(lesson, mod.title, course.lang);
       if (!topicoRelevante(lesson, topic.keys, topic.title)) continue;
+      const idioma = (topic.example.language || "").toLowerCase();
+      const permitidas = linguagens[course.lang] ?? [course.lang];
+      const neutras = ["text", "txt", "markdown", "md", "json", "yaml", "bash", "shell", ""];
+      if (!permitidas.includes(idioma) && !neutras.includes(idioma)) continue;
       for (const q of topic.quiz) {
         if (seen.has(q.q)) continue;
         seen.add(q.q);
