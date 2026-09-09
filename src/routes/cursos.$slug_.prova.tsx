@@ -191,6 +191,25 @@ function ExamPage() {
           </p>
         )}
 
+        {user && (
+          <p
+            aria-live="polite"
+            className={`mt-6 rounded-xl border px-4 py-3 text-sm leading-6 ${
+              bloqueado ? "border-warn/60 text-warn" : "border-border text-muted-foreground"
+            }`}
+          >
+            {jaAprovado
+              ? "Você já foi aprovado neste curso. Pode refazer a prova quando quiser para melhorar a nota — o certificado é atualizado."
+              : bloqueado
+                ? `Limite de tentativas atingido: ${MAX_TENTATIVAS} envios a cada 24 horas. Você pode tentar de novo a partir de ${liberaEm?.toLocaleString("pt-BR")}.`
+                : `Você tem ${restantes} de ${MAX_TENTATIVAS} tentativas disponíveis nas próximas 24 horas.${
+                    recentes.length
+                      ? ` Última tentativa: ${new Date(recentes[0]!.created_at).toLocaleString("pt-BR")}.`
+                      : ""
+                  }`}
+          </p>
+        )}
+
         <section aria-labelledby="prova-titulo" className="mt-10">
           <h2 id="prova-titulo" className="font-display text-2xl font-extrabold">
             1. Prova final
