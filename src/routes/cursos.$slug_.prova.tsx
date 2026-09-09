@@ -1,5 +1,10 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+
+/** Regra de novas tentativas: até 3 envios da prova a cada 24 horas. */
+export const MAX_TENTATIVAS = 3;
+export const JANELA_MS = 24 * 60 * 60 * 1000;
 import { Award, CheckCircle2, FileCheck2, Rocket, XCircle } from "lucide-react";
 import { getCourse } from "@/data/courses";
 import { EXAM_SIZE, PASS_RATE, certificateCode, finalExam, finalProject } from "@/data/finalAssessments";
