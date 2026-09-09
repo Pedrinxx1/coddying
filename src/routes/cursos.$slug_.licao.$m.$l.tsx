@@ -698,7 +698,7 @@ function LessonPage() {
                 {guided && (
                   <div className="mt-4 grid grid-cols-4 gap-2" aria-label="Desafios da aula">
                     {guided.challenges.map((challenge, index) => (
-                      <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus(completedChallenges.has(index) ? "ok" : "idle"); setOutput(null); setShowHint(false); }} className="min-w-0 px-2">{completedChallenges.has(index) ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</Button>
+                      <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus(completedChallenges.has(index) ? "ok" : "idle"); setOutput(null); setHintLevel(0); }} className="min-w-0 px-2">{completedChallenges.has(index) ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</Button>
                     ))}
                   </div>
                 )}
