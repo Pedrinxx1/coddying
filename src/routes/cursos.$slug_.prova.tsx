@@ -47,13 +47,48 @@ function ExamPage() {
   const [result, setResult] = useState<{ acertos: number; aprovado: boolean } | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [tentativas, setTentativas] = useState<{ created_at: string; passed: boolean }[]>([]);
+  const [jaAprovado, setJaAprovado] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setTentativas([]);
+      setJaAprovado(false);
+      return;
+    }
+    void (async () => {
+      const [{ data: att }, { data: cert }] = await Promise.all([
+        supabase
+          .from("exam_attempts")
+          .select("created_at, passed")
+          .eq("course_slug", course.slug)
+          .order("created_at", { ascending: false })
+          .limit(30),
+        supabase.from("certificates").select("code").eq("course_slug", course.slug).maybeSingle(),
+      ]);
+      setTentativas(att ?? []);
+      setJaAprovado(Boolean(cert));
+    })();
+  }, [user, course.slug]);
 
   const respondidas = Object.keys(answers).length;
   const requisitosOk = project.requirements.every((_, i) => checked[i]);
   const projetoOk = projectUrl.trim().length > 5 && projectNotes.trim().length > 30 && requisitosOk;
   const minimo = Math.ceil(exam.length * PASS_RATE);
 
+  const recentes = tentativas.filter((t) => Date.now() - new Date(t.created_at).getTime() < JANELA_MS);
+  const restantes = Math.max(0, MAX_TENTATIVAS - recentes.length);
+  const maisAntigaRecente = recentes[recentes.length - 1];
+  const liberaEm = maisAntigaRecente ? new Date(new Date(maisAntigaRecente.created_at).getTime() + JANELA_MS) : null;
+  const bloqueado = !jaAprovado && Boolean(user) && restantes === 0;
+
   async function enviar() {
+    if (bloqueado) {
+      setAviso(
+        `Você usou as ${MAX_TENTATIVAS} tentativas permitidas em 24 horas. Você poderá refazer a prova a partir de ${liberaEm?.toLocaleString("pt-BR")}.`,
+      );
+      return;
+    }
     if (respondidas < exam.length) {
       setAviso(`Responda todas as ${exam.length} questões antes de enviar.`);
       return;
@@ -61,14 +96,44 @@ function ExamPage() {
     const acertos = exam.reduce((n, q, i) => n + (answers[i] === q.answer ? 1 : 0), 0);
     const aprovado = acertos >= minimo && projetoOk;
     setResult({ acertos, aprovado });
+    if (user) {
+      const agora = new Date().toISOString();
+      await supabase.from("exam_attempts").insert({
+        user_id: user.id,
+        course_slug: course.slug,
+        score: acertos,
+        total_questions: exam.length,
+        passed: aprovado,
+      });
+      setTentativas((t) => [{ created_at: agora, passed: aprovado }, ...t]);
+    }
+    const sobraram = Math.max(0, restantes - 1);
     setAviso(
       aprovado
         ? null
         : acertos < minimo
-          ? `Você acertou ${acertos} de ${exam.length}. São necessários ${minimo} acertos. Revise as questões erradas abaixo e tente de novo.`
+          ? `Você acertou ${acertos} de ${exam.length}. São necessários ${minimo} acertos. Revise as questões erradas abaixo${
+              user
+                ? sobraram > 0
+                  ? ` e tente de novo — restam ${sobraram} tentativa(s) hoje.`
+                  : `. Você atingiu o limite de ${MAX_TENTATIVAS} tentativas em 24 horas e poderá repetir a partir de ${new Date(Date.now() + JANELA_MS).toLocaleString("pt-BR")}.`
+                : " e tente de novo."
+            }`
           : "Prova aprovada, mas falta completar a entrega do projeto final (link, descrição e checklist).",
     );
-    if (!aprovado || !user) return;
+    if (!aprovado) {
+      toast.error(acertos < minimo ? "Prova não aprovada ainda" : "Falta a entrega do projeto final", {
+        description:
+          acertos < minimo
+            ? `Você acertou ${acertos} de ${exam.length}. O mínimo é ${minimo}.`
+            : "Preencha o link, a descrição e marque todos os itens do checklist.",
+      });
+      return;
+    }
+    if (!user) {
+      toast.info("Boa! Entre na sua conta para emitir o certificado.");
+      return;
+    }
     setSalvando(true);
     const { error } = await supabase.from("certificates").upsert(
       {
