@@ -21,7 +21,7 @@ export type LessonContent = {
 const webLangs = new Set(["html", "css"]);
 
 export function lessonContent(course: Course, moduleTitle: string, lessonTitle: string): LessonContent {
-  const topic = findTopic(lessonTitle, moduleTitle, course.lang);
+  const topic = findTopic(lessonTitle, moduleTitle, course.lang, course.slug);
 
   const sections = [
     { title: "Visão geral", body: topic.intro, kind: "overview" as const },

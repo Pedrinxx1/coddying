@@ -263,6 +263,19 @@ function buildGuidedLesson(courseSlug: string, lessonTitle: string, topic: Topic
     },
   ];
 
+  const primary = {
+    title: activityMode === "reflection" ? "1. Decida e justifique" : activityMode === "preview" ? "1. Monte a primeira versão" : "1. Faça funcionar",
+    instruction: activityMode === "reflection"
+      ? `Resolva um cenário real sobre “${lessonTitle}”: descreva a decisão que tomaria, por que ela faz sentido e como verificaria se funcionou.`
+      : exercise.prompt,
+    starter: activityMode === "reflection"
+      ? `Cenário: preciso aplicar ${lessonTitle} em um projeto real.\n\nMinha decisão:\n\nPor que escolhi esse caminho:\n\nComo vou verificar o resultado:\n`
+      : exercise.starter,
+    expected: activityMode === "reflection" ? null : exercise.expected,
+    hint: `Volte ao exemplo resolvido e compare a estrutura. ${topic.pitfalls[0] ?? "Resolva uma parte de cada vez."}`,
+    mode: activityMode,
+  } satisfies GuidedLesson["challenges"][number];
+
   return {
     duration: "50–75 min",
     level: "Aula guiada",
@@ -278,16 +291,29 @@ function buildGuidedLesson(courseSlug: string, lessonTitle: string, topic: Topic
     mentalModel: getMentalModel(courseSlug, lessonTitle),
     steps: concepts,
     challenges: [
+      primary,
       {
-        title: activityMode === "reflection" ? "Estudo de caso" : activityMode === "preview" ? "Laboratório visual" : "Laboratório prático",
-        instruction: activityMode === "reflection"
-          ? `Resolva um cenário real sobre “${lessonTitle}”: descreva a decisão que tomaria, por que ela faz sentido e como verificaria se funcionou.`
-          : exercise.prompt,
-        starter: activityMode === "reflection"
-          ? `Cenário: preciso aplicar ${lessonTitle} em um projeto real.\n\nMinha decisão:\n\nPor que escolhi esse caminho:\n\nComo vou verificar o resultado:\n`
-          : exercise.starter,
+        title: "2. Preveja antes de testar",
+        instruction: `Sem executar, explique qual resultado o exemplo de ${lessonTitle} deve produzir e qual parte é responsável por ele.`,
+        starter: `Minha previsão:\n\nA parte responsável pelo resultado:\n\nComo vou conferir:\n`,
+        expected: null,
+        hint: "Use o modelo mental da aula: entrada, transformação e evidência observável.",
+        mode: "reflection",
+      },
+      {
+        title: "3. Encontre e corrija o erro",
+        instruction: `Use o exemplo de ${lessonTitle}, identifique um risco citado na aula e registre ou implemente a correção.`,
+        starter: activityMode === "reflection" ? `Erro ou risco encontrado:\n\nCorreção:\n\nTeste que comprova a correção:\n` : exercise.starter,
         expected: activityMode === "reflection" ? null : exercise.expected,
-        hint: `Volte ao exemplo resolvido e compare a estrutura. ${topic.pitfalls[0] ?? "Resolva uma parte de cada vez."}`,
+        hint: topic.pitfalls[0] ?? "Compare uma diferença por vez com o exemplo resolvido.",
+        mode: activityMode,
+      },
+      {
+        title: "4. Aplique em um caso novo",
+        instruction: `Crie uma variação própria usando ${lessonTitle}. Mude os dados ou o cenário e demonstre que o resultado continua correto.`,
+        starter: activityMode === "reflection" ? `Novo cenário:\n\nMinha solução:\n\nEvidência de que funcionou:\n` : exercise.starter,
+        expected: activityMode === "reflection" ? null : exercise.expected,
+        hint: "Mantenha a estrutura que já funcionou e altere uma decisão por vez.",
         mode: activityMode,
       },
     ],

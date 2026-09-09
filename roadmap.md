@@ -19,3 +19,10 @@
 - [x] Painel com notas das provas, tentativas e status do projeto por curso
 - [x] Notificações ao concluir prova/projeto (certificado disponível)
 - [x] Exportação do histórico em CSV e em PDF/impressão
+
+## Reconstrução atual das aulas
+- [x] Isolar conteúdo por curso, módulo e aula sem associação fuzzy entre matérias
+- [x] Ampliar cada aula para pelo menos quatro interações e laboratório por domínio
+- [x] Aplicar o fluxo visual Immersive Studio Workspace com grafite, verde, Outfit e Figtree
+- [x] Implementar busca de aulas, favoritos e anotações pessoais
+- [x] Auditar o catálogo completo e validar celular, desktop, teclado e impressão

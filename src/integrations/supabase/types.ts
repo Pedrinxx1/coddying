@@ -104,6 +104,69 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_favorites: {
+        Row: {
+          course_slug: string
+          created_at: string
+          id: string
+          lesson_index: number
+          module_index: number
+          user_id: string
+        }
+        Insert: {
+          course_slug: string
+          created_at?: string
+          id?: string
+          lesson_index: number
+          module_index: number
+          user_id: string
+        }
+        Update: {
+          course_slug?: string
+          created_at?: string
+          id?: string
+          lesson_index?: number
+          module_index?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lesson_notes: {
+        Row: {
+          body: string
+          course_slug: string
+          created_at: string
+          id: string
+          lesson_index: number
+          module_index: number
+          section_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          course_slug: string
+          created_at?: string
+          id?: string
+          lesson_index: number
+          module_index: number
+          section_id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          course_slug?: string
+          created_at?: string
+          id?: string
+          lesson_index?: number
+          module_index?: number
+          section_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lesson_progress: {
         Row: {
           completed_at: string
