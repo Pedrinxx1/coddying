@@ -1,5 +1,10 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+
+/** Regra de novas tentativas: até 3 envios da prova a cada 24 horas. */
+export const MAX_TENTATIVAS = 3;
+export const JANELA_MS = 24 * 60 * 60 * 1000;
 import { Award, CheckCircle2, FileCheck2, Rocket, XCircle } from "lucide-react";
 import { getCourse } from "@/data/courses";
 import { EXAM_SIZE, PASS_RATE, certificateCode, finalExam, finalProject } from "@/data/finalAssessments";
@@ -47,13 +52,48 @@ function ExamPage() {
   const [result, setResult] = useState<{ acertos: number; aprovado: boolean } | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [tentativas, setTentativas] = useState<{ created_at: string; passed: boolean }[]>([]);
+  const [jaAprovado, setJaAprovado] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setTentativas([]);
+      setJaAprovado(false);
+      return;
+    }
+    void (async () => {
+      const [{ data: att }, { data: cert }] = await Promise.all([
+        supabase
+          .from("exam_attempts")
+          .select("created_at, passed")
+          .eq("course_slug", course.slug)
+          .order("created_at", { ascending: false })
+          .limit(30),
+        supabase.from("certificates").select("code").eq("course_slug", course.slug).maybeSingle(),
+      ]);
+      setTentativas(att ?? []);
+      setJaAprovado(Boolean(cert));
+    })();
+  }, [user, course.slug]);
 
   const respondidas = Object.keys(answers).length;
   const requisitosOk = project.requirements.every((_, i) => checked[i]);
   const projetoOk = projectUrl.trim().length > 5 && projectNotes.trim().length > 30 && requisitosOk;
   const minimo = Math.ceil(exam.length * PASS_RATE);
 
+  const recentes = tentativas.filter((t) => Date.now() - new Date(t.created_at).getTime() < JANELA_MS);
+  const restantes = Math.max(0, MAX_TENTATIVAS - recentes.length);
+  const maisAntigaRecente = recentes[recentes.length - 1];
+  const liberaEm = maisAntigaRecente ? new Date(new Date(maisAntigaRecente.created_at).getTime() + JANELA_MS) : null;
+  const bloqueado = !jaAprovado && Boolean(user) && restantes === 0;
+
   async function enviar() {
+    if (bloqueado) {
+      setAviso(
+        `Você usou as ${MAX_TENTATIVAS} tentativas permitidas em 24 horas. Você poderá refazer a prova a partir de ${liberaEm?.toLocaleString("pt-BR")}.`,
+      );
+      return;
+    }
     if (respondidas < exam.length) {
       setAviso(`Responda todas as ${exam.length} questões antes de enviar.`);
       return;
@@ -61,14 +101,44 @@ function ExamPage() {
     const acertos = exam.reduce((n, q, i) => n + (answers[i] === q.answer ? 1 : 0), 0);
     const aprovado = acertos >= minimo && projetoOk;
     setResult({ acertos, aprovado });
+    if (user) {
+      const agora = new Date().toISOString();
+      await supabase.from("exam_attempts").insert({
+        user_id: user.id,
+        course_slug: course.slug,
+        score: acertos,
+        total_questions: exam.length,
+        passed: aprovado,
+      });
+      setTentativas((t) => [{ created_at: agora, passed: aprovado }, ...t]);
+    }
+    const sobraram = Math.max(0, restantes - 1);
     setAviso(
       aprovado
         ? null
         : acertos < minimo
-          ? `Você acertou ${acertos} de ${exam.length}. São necessários ${minimo} acertos. Revise as questões erradas abaixo e tente de novo.`
+          ? `Você acertou ${acertos} de ${exam.length}. São necessários ${minimo} acertos. Revise as questões erradas abaixo${
+              user
+                ? sobraram > 0
+                  ? ` e tente de novo — restam ${sobraram} tentativa(s) hoje.`
+                  : `. Você atingiu o limite de ${MAX_TENTATIVAS} tentativas em 24 horas e poderá repetir a partir de ${new Date(Date.now() + JANELA_MS).toLocaleString("pt-BR")}.`
+                : " e tente de novo."
+            }`
           : "Prova aprovada, mas falta completar a entrega do projeto final (link, descrição e checklist).",
     );
-    if (!aprovado || !user) return;
+    if (!aprovado) {
+      toast.error(acertos < minimo ? "Prova não aprovada ainda" : "Falta a entrega do projeto final", {
+        description:
+          acertos < minimo
+            ? `Você acertou ${acertos} de ${exam.length}. O mínimo é ${minimo}.`
+            : "Preencha o link, a descrição e marque todos os itens do checklist.",
+      });
+      return;
+    }
+    if (!user) {
+      toast.info("Boa! Entre na sua conta para emitir o certificado.");
+      return;
+    }
     setSalvando(true);
     const { error } = await supabase.from("certificates").upsert(
       {
@@ -86,8 +156,14 @@ function ExamPage() {
     setSalvando(false);
     if (error) {
       setAviso("Não conseguimos emitir o certificado agora. Tente novamente em instantes.");
+      toast.error("Não conseguimos emitir o certificado agora.");
       return;
     }
+    setJaAprovado(true);
+    toast.success("Certificado disponível!", {
+      description: `Você foi aprovado em ${course.title} com ${acertos} de ${exam.length} e o projeto final foi entregue. Já dá para imprimir ou salvar em PDF.`,
+      duration: 8000,
+    });
     void navigate({ to: "/cursos/$slug/certificado", params: { slug: course.slug } });
   }
 
@@ -112,6 +188,25 @@ function ExamPage() {
             <Link to="/entrar" className="font-bold underline underline-offset-4">
               Entrar
             </Link>
+          </p>
+        )}
+
+        {user && (
+          <p
+            aria-live="polite"
+            className={`mt-6 rounded-xl border px-4 py-3 text-sm leading-6 ${
+              bloqueado ? "border-warn/60 text-warn" : "border-border text-muted-foreground"
+            }`}
+          >
+            {jaAprovado
+              ? "Você já foi aprovado neste curso. Pode refazer a prova quando quiser para melhorar a nota — o certificado é atualizado."
+              : bloqueado
+                ? `Limite de tentativas atingido: ${MAX_TENTATIVAS} envios a cada 24 horas. Você pode tentar de novo a partir de ${liberaEm?.toLocaleString("pt-BR")}.`
+                : `Você tem ${restantes} de ${MAX_TENTATIVAS} tentativas disponíveis nas próximas 24 horas.${
+                    recentes.length
+                      ? ` Última tentativa: ${new Date(recentes[0]!.created_at).toLocaleString("pt-BR")}.`
+                      : ""
+                  }`}
           </p>
         )}
 
@@ -260,10 +355,11 @@ function ExamPage() {
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             onClick={() => void enviar()}
-            disabled={salvando}
+            disabled={salvando || bloqueado}
             className="bg-brand inline-flex min-h-11 items-center gap-2 rounded-xl px-5 font-bold text-primary-foreground disabled:opacity-60"
           >
-            <FileCheck2 className="h-4 w-4" /> {salvando ? "Emitindo..." : "Enviar prova e projeto"}
+            <FileCheck2 className="h-4 w-4" />{" "}
+            {salvando ? "Emitindo..." : bloqueado ? "Tentativas esgotadas por hoje" : "Enviar prova e projeto"}
           </button>
           {result && (
             <button

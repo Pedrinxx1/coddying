@@ -74,6 +74,36 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_attempts: {
+        Row: {
+          course_slug: string
+          created_at: string
+          id: string
+          passed: boolean
+          score: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          course_slug: string
+          created_at?: string
+          id?: string
+          passed?: boolean
+          score?: number
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          course_slug?: string
+          created_at?: string
+          id?: string
+          passed?: boolean
+          score?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       lesson_progress: {
         Row: {
           completed_at: string

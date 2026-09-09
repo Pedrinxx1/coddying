@@ -13,3 +13,9 @@
 - [x] Banco de questoes proprio por curso (examBank)
 - [x] Tela de ajuda de atalhos, aria-live, autosave e retomada
 - [x] Impressao/PDF paginado da aula e do certificado
+
+- [x] Página pública de validação de certificado por código (/verificar)
+- [x] Limite de tentativas da prova final (3 por 24h) com mensagens claras
+- [x] Painel com notas das provas, tentativas e status do projeto por curso
+- [x] Notificações ao concluir prova/projeto (certificado disponível)
+- [x] Exportação do histórico em CSV e em PDF/impressão

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Award, Code2, Flame, Loader2, Save, Trash2, Trophy, Zap } from "lucide-react";
+import { Award, Code2, Download, Flame, Loader2, Printer, Save, Trash2, Trophy, Zap } from "lucide-react";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { countLessons, courses, levelEmoji } from "@/data/courses";
@@ -43,11 +44,23 @@ export const ACHIEVEMENTS: Record<string, { label: string; desc: string }> = {
   streak_3: { label: "Constância", desc: "3 dias seguidos estudando" },
 };
 
+type Attempt = { course_slug: string; score: number; total_questions: number; passed: boolean; created_at: string };
+type Certificate = {
+  course_slug: string;
+  score: number;
+  total_questions: number;
+  project_url: string | null;
+  code: string;
+  issued_at: string;
+};
+
 function Painel() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [progress, setProgress] = useState<Progress[]>([]);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [earned, setEarned] = useState<string[]>([]);
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [certs, setCerts] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("");
@@ -58,12 +71,21 @@ function Painel() {
       const { data: u } = await supabase.auth.getUser();
       const uid = u.user?.id;
       if (!uid) return;
-      const [p, pr, sn, ac] = await Promise.all([
+      const [p, pr, sn, ac, at, ce] = await Promise.all([
         supabase.from("profiles").select("display_name, avatar_url, xp, streak").eq("id", uid).maybeSingle(),
         supabase.from("lesson_progress").select("course_slug, module_index, lesson_index"),
         supabase.from("snippets").select("id, title, language, filename, code, updated_at").order("updated_at", { ascending: false }),
         supabase.from("achievements").select("code"),
+        supabase
+          .from("exam_attempts")
+          .select("course_slug, score, total_questions, passed, created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("certificates")
+          .select("course_slug, score, total_questions, project_url, code, issued_at"),
       ]);
+      setAttempts(at.data ?? []);
+      setCerts((ce.data ?? []) as Certificate[]);
       setProfile(p.data ?? { display_name: null, avatar_url: null, xp: 0, streak: 0 });
       setName(p.data?.display_name ?? "");
       setAvatar(p.data?.avatar_url ?? "");
@@ -118,6 +140,55 @@ function Painel() {
   async function removeSnippet(id: string) {
     await supabase.from("snippets").delete().eq("id", id);
     setSnippets((s) => s.filter((x) => x.id !== id));
+  }
+
+  /** Linhas do histórico: uma por curso com progresso, notas e status do projeto. */
+  const historico = courses.map((c) => {
+    const done = progress.filter((p) => p.course_slug === c.slug).length;
+    const total = countLessons(c);
+    const tent = attempts.filter((a) => a.course_slug === c.slug);
+    const melhor = tent.reduce(
+      (best, a) => (best && best.score / best.total_questions >= a.score / a.total_questions ? best : a),
+      null as Attempt | null,
+    );
+    const cert = certs.find((x) => x.course_slug === c.slug) ?? null;
+    return {
+      slug: c.slug,
+      titulo: c.title,
+      done,
+      total,
+      pct: total ? Math.round((done / total) * 100) : 0,
+      tentativas: tent.length,
+      melhor,
+      cert,
+    };
+  });
+
+  const comAtividade = historico.filter((h) => h.done > 0 || h.tentativas > 0 || h.cert);
+
+  function baixarCSV() {
+    const linhas = [
+      ["Curso", "Licoes concluidas", "Total de licoes", "Progresso %", "Tentativas de prova", "Melhor nota", "Projeto entregue", "Certificado", "Emitido em"],
+      ...comAtividade.map((h) => [
+        h.titulo,
+        String(h.done),
+        String(h.total),
+        String(h.pct),
+        String(h.tentativas),
+        h.melhor ? `${h.melhor.score}/${h.melhor.total_questions}` : "-",
+        h.cert?.project_url ? "Sim" : "Nao",
+        h.cert?.code ?? "-",
+        h.cert ? new Date(h.cert.issued_at).toLocaleDateString("pt-BR") : "-",
+      ]),
+    ];
+    const csv = linhas.map((l) => l.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "codding-historico.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Histórico exportado em CSV.");
   }
 
   if (loading) {
@@ -219,6 +290,85 @@ function Painel() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-12">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-2xl font-extrabold">Provas, projetos e certificados</h2>
+            <div className="nao-imprimir flex flex-wrap gap-2">
+              <button
+                onClick={baixarCSV}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold"
+              >
+                <Download className="h-4 w-4" /> Exportar CSV
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold"
+              >
+                <Printer className="h-4 w-4" /> Salvar PDF / imprimir
+              </button>
+            </div>
+          </div>
+          {comAtividade.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Você ainda não fez nenhuma prova final. Termine um curso e faça a prova para gerar seu certificado.
+            </p>
+          ) : (
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[42rem] border-collapse text-sm">
+                <caption className="sr-only">Seu progresso, notas das provas e status do projeto por curso</caption>
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th scope="col" className="px-3 py-2">Curso</th>
+                    <th scope="col" className="px-3 py-2">Progresso</th>
+                    <th scope="col" className="px-3 py-2">Tentativas</th>
+                    <th scope="col" className="px-3 py-2">Melhor nota</th>
+                    <th scope="col" className="px-3 py-2">Projeto</th>
+                    <th scope="col" className="px-3 py-2">Certificado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comAtividade.map((h) => (
+                    <tr key={h.slug} className="border-t border-border align-middle">
+                      <th scope="row" className="px-3 py-3 text-left font-semibold">
+                        {h.titulo}
+                      </th>
+                      <td className="px-3 py-3 text-muted-foreground">
+                        {h.done}/{h.total} ({h.pct}%)
+                      </td>
+                      <td className="px-3 py-3 text-muted-foreground">{h.tentativas}</td>
+                      <td className="px-3 py-3 text-muted-foreground">
+                        {h.melhor ? `${h.melhor.score}/${h.melhor.total_questions}` : "—"}
+                      </td>
+                      <td className="px-3 py-3">
+                        {h.cert?.project_url ? (
+                          <span className="text-success">Entregue</span>
+                        ) : (
+                          <span className="text-muted-foreground">Pendente</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {h.cert ? (
+                          <Link
+                            to="/cursos/$slug/certificado"
+                            params={{ slug: h.slug }}
+                            className="font-semibold text-cyan"
+                          >
+                            Ver certificado
+                          </Link>
+                        ) : (
+                          <Link to="/cursos/$slug/prova" params={{ slug: h.slug }} className="text-muted-foreground underline">
+                            Fazer a prova
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>

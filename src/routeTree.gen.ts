@@ -15,6 +15,7 @@ import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
+import { Route as VerificarRouteImport } from './routes/verificar'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as CursosIndexRouteImport } from './routes/cursos.index'
 import { Route as CursosSlugRouteImport } from './routes/cursos.$slug'
@@ -49,6 +50,11 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
 const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
   id: '/redefinir-senha',
   path: '/redefinir-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerificarRoute = VerificarRouteImport.update({
+  id: '/verificar',
+  path: '/verificar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/playground': typeof PlaygroundRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/verificar': typeof VerificarRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/cursos/': typeof CursosIndexRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/playground': typeof PlaygroundRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/verificar': typeof VerificarRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/cursos': typeof CursosIndexRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/playground': typeof PlaygroundRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/verificar': typeof VerificarRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/cursos/': typeof CursosIndexRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/esqueci-senha'
     | '/playground'
     | '/redefinir-senha'
+    | '/verificar'
     | '/painel'
     | '/cursos/$slug'
     | '/cursos/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/esqueci-senha'
     | '/playground'
     | '/redefinir-senha'
+    | '/verificar'
     | '/painel'
     | '/cursos/$slug'
     | '/cursos'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/esqueci-senha'
     | '/playground'
     | '/redefinir-senha'
+    | '/verificar'
     | '/_authenticated/painel'
     | '/cursos/$slug'
     | '/cursos/'
@@ -173,6 +185,7 @@ export interface RootRouteChildren {
   EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   PlaygroundRoute: typeof PlaygroundRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
+  VerificarRoute: typeof VerificarRoute
   CursosSlugRoute: typeof CursosSlugRoute
   CursosIndexRoute: typeof CursosIndexRoute
   CursosSlugCertificadoRoute: typeof CursosSlugCertificadoRoute
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/redefinir-senha'
       fullPath: '/redefinir-senha'
       preLoaderRoute: typeof RedefinirSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verificar': {
+      id: '/verificar'
+      path: '/verificar'
+      fullPath: '/verificar'
+      preLoaderRoute: typeof VerificarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/painel': {
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   EsqueciSenhaRoute: EsqueciSenhaRoute,
   PlaygroundRoute: PlaygroundRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
+  VerificarRoute: VerificarRoute,
   CursosSlugRoute: CursosSlugRoute,
   CursosIndexRoute: CursosIndexRoute,
   CursosSlugCertificadoRoute: CursosSlugCertificadoRoute,
