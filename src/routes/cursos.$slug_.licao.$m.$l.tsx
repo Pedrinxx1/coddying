@@ -118,6 +118,15 @@ export const Route = createFileRoute("/cursos/$slug_/licao/$m/$l")({
   ),
 });
 
+const secoesAula = [
+  { id: "aula-explicacao", label: "Explicação", tecla: "e" },
+  { id: "aula-exemplo", label: "Exemplo", tecla: "x" },
+  { id: "aula-pratica", label: "Prática", tecla: "p" },
+  { id: "aula-quiz", label: "Quiz", tecla: "q" },
+  { id: "aula-videos", label: "Vídeos", tecla: "v" },
+  { id: "aula-revisao", label: "Revisão", tecla: "r" },
+];
+
 function LessonPage() {
   const { course, mod, lesson, m, l } = Route.useLoaderData();
   const navigate = useNavigate();
