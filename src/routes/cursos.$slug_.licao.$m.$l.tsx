@@ -396,24 +396,50 @@ function LessonPage() {
         )}
 
         {/* Índice clicável das seções da aula */}
-        <nav aria-label="Seções da aula" className="nao-imprimir mt-5 flex flex-wrap gap-2">
-          {[
-            { id: "aula-explicacao", label: "Explicação" },
-            { id: "aula-exemplo", label: "Exemplo" },
-            { id: "aula-pratica", label: "Prática" },
-            { id: "aula-quiz", label: "Quiz" },
-            { id: "aula-videos", label: "Vídeos" },
-            { id: "aula-revisao", label: "Revisão" },
-          ].map((item) => (
+        <nav id="aula-indice" aria-label="Seções da aula" className="nao-imprimir mt-5 scroll-mt-24 flex flex-wrap gap-2">
+          {secoesAula.map((item) => (
             <button
               key={item.id}
-              onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="min-h-11 rounded-full border border-border px-4 text-sm font-semibold text-muted-foreground hover:border-cyan/60 hover:text-foreground"
+              onClick={() => irPara(item.id)}
+              aria-keyshortcuts={`Alt+${item.tecla.toUpperCase()}`}
+              className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${secoesVistas.includes(item.id) ? "border-success/60 text-success" : "border-border text-muted-foreground"} hover:border-cyan/60 hover:text-foreground`}
             >
-              {item.label}
+              {secoesVistas.includes(item.id) && <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" />}
+              {item.label} <span className="text-xs opacity-70">Alt+{item.tecla.toUpperCase()}</span>
             </button>
           ))}
         </nav>
+
+        <details className="nao-imprimir mt-3 rounded-xl border border-border px-3 py-2">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-muted-foreground">
+            <Keyboard className="h-4 w-4 text-cyan" /> Atalhos de teclado
+          </summary>
+          <ul className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+            {secoesAula.map((item) => (
+              <li key={item.id}>
+                <kbd className="rounded border border-border px-1">Alt+{item.tecla.toUpperCase()}</kbd> ir para {item.label.toLowerCase()}
+              </li>
+            ))}
+            <li><kbd className="rounded border border-border px-1">Alt+I</kbd> voltar ao índice</li>
+            <li><kbd className="rounded border border-border px-1">Alt+N</kbd> próximo passo / próxima lição</li>
+            <li><kbd className="rounded border border-border px-1">Alt+B</kbd> lição anterior</li>
+            <li><kbd className="rounded border border-border px-1">Alt+H</kbd> pedir dica</li>
+            <li><kbd className="rounded border border-border px-1">Alt+K</kbd> verificar a prática</li>
+            <li><kbd className="rounded border border-border px-1">Alt+D</kbd> baixar PDF da aula</li>
+          </ul>
+        </details>
+
+        {retomavel && (
+          <p className="nao-imprimir mt-3 inline-flex flex-wrap items-center gap-2 rounded-xl border border-cyan/50 px-4 py-3 text-sm text-cyan">
+            <Sparkles className="h-4 w-4" /> Retomamos de onde você parou nesta aula.
+            <button
+              onClick={() => irPara(ultimaSecao)}
+              className="min-h-11 font-bold underline underline-offset-4"
+            >
+              Continuar
+            </button>
+          </p>
+        )}
 
         {/* Controles de leitura */}
         <div className="nao-imprimir mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
