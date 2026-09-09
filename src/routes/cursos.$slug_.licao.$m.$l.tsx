@@ -144,6 +144,9 @@ function LessonPage() {
   const [challengeIndex, setChallengeIndex] = useState(0);
   const [completedChallenges, setCompletedChallenges] = useState<Set<number>>(new Set());
   const [hintLevel, setHintLevel] = useState(0);
+  const [secoesVistas, setSecoesVistas] = useState<string[]>([]);
+  const [ultimaSecao, setUltimaSecao] = useState("aula-explicacao");
+  const [retomavel, setRetomavel] = useState(false);
   const [escala, setEscala] = useState(1);
   const [contraste, setContraste] = useState(false);
   const [quebra, setQuebra] = useState(true);
