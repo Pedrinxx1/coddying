@@ -12,6 +12,27 @@ export const PASS_RATE = 0.7;
 export const EXAM_SIZE = 12;
 
 /** Prova final: perguntas retiradas do conteúdo real de todas as lições do curso. */
+const linguagens: Record<string, string[]> = {
+  python: ["python"],
+  javascript: ["javascript", "js", "node"],
+  typescript: ["typescript", "javascript", "js"],
+  java: ["java"],
+  html: ["html", "css"],
+  css: ["css", "html"],
+  sql: ["sql"],
+  bash: ["bash", "shell", "docker", "git"],
+};
+
+/** Evita questões de outra linguagem que entram por semelhança de título. */
+function combina(q: QuizQuestion, lang: string) {
+  const texto = `${q.q} ${q.options.join(" ")}`.toLowerCase();
+  const permitidas = linguagens[lang] ?? [lang];
+  const outras = ["python", "javascript", "typescript", "java", "sql", "html", "css"].filter(
+    (n) => !permitidas.includes(n),
+  );
+  return !outras.some((n) => texto.includes(` ${n}`) || texto.includes(`em ${n}`));
+}
+
 export function finalExam(course: Course): QuizQuestion[] {
   const seen = new Set<string>();
   const pool: QuizQuestion[] = [];
@@ -21,6 +42,7 @@ export function finalExam(course: Course): QuizQuestion[] {
       for (const q of topic.quiz) {
         if (seen.has(q.q)) continue;
         seen.add(q.q);
+        if (!combina(q, course.lang)) continue;
         pool.push(q);
       }
     }
