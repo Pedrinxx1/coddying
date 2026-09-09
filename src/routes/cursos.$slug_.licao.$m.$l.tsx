@@ -509,13 +509,18 @@ function LessonPage() {
         )}
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)] lg:gap-10">
-          <article className="min-w-0 space-y-8">
+          <article
+            className={`min-w-0 space-y-8 leitura ${contraste ? "leitura-contraste" : ""} ${quebra ? "leitura-quebra" : ""}`}
+            style={{ ["--leitura-escala" as string]: escala }}
+          >
             {guided ? (
-              <div className="space-y-10">
+              <div id="aula-explicacao" className="scroll-mt-24 space-y-10">
                 {guided.steps.map((step, index) => {
                   const selected = guidedAnswers[index];
                   const answered = selected !== undefined;
+                  const exemplo = Boolean(step.code) && guided.steps.findIndex((s) => s.code) === index;
                   return (
+
                     <section key={step.title} className="overflow-hidden rounded-xl border border-border bg-surface px-5 py-6 sm:px-7 sm:py-8">
                       <div className="flex items-center gap-3">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan/50 text-xs font-bold text-cyan">{index + 1}</span>
