@@ -330,15 +330,38 @@ function LessonPage() {
   const checkpoints = useMemo(() => {
     const escreveu = code.trim().length > 0 && code.trim() !== (activeChallenge?.starter ?? ex.starter).trim();
     const semLacunas = !/____|\.\.\.|escreva aqui/i.test(code);
-    const executou = output !== null;
+    const executou = output !== null || (isWeb && srcDoc.length > 0);
     const acertou = guided ? completedChallenges.has(challengeIndex) : status === "ok";
+    const esperado = activeExpected && activeExpected !== "\n" ? activeExpected : null;
     return [
-      { label: escreveu ? "Você já escreveu sua própria versão" : "Escreva sua versão a partir do modelo", ok: escreveu },
-      { label: semLacunas ? "Nenhuma lacuna deixada em branco" : "Ainda há lacunas para preencher (____)", ok: semLacunas },
-      { label: executou ? (isReflection ? "Análise revisada" : "Código executado") : isReflection ? "Clique em revisar análise" : "Clique em verificar para executar", ok: executou },
-      { label: acertou ? "Resultado conferido e correto" : "Resultado ainda não confere com o esperado", ok: acertou },
+      {
+        label: escreveu ? "Você já escreveu sua própria versão" : "Escreva sua versão a partir do modelo",
+        ok: escreveu,
+        detail: "O texto do editor ainda é igual ao modelo inicial. Altere pelo menos uma linha para que a prática conte como sua.",
+      },
+      {
+        label: semLacunas ? "Nenhuma lacuna deixada em branco" : "Ainda há lacunas para preencher",
+        ok: semLacunas,
+        detail: "Substitua os trechos ____ (ou “escreva aqui”) pelo conteúdo pedido — enquanto eles existirem, o resultado não pode ser conferido.",
+      },
+      {
+        label: executou ? (isReflection ? "Análise revisada" : "Código executado") : isReflection ? "Revise sua análise" : "Execute seu código",
+        ok: executou,
+        detail: isReflection
+          ? "Clique em “Revisar análise” para conferir se sua resposta tem decisão, motivo e forma de verificação."
+          : "Clique em “Verificar resposta” para rodar seu código e comparar a saída com o esperado.",
+      },
+      {
+        label: acertou ? "Resultado conferido e correto" : "Resultado ainda não confere",
+        ok: acertou,
+        detail: isReflection
+          ? "Esperado: uma resposta com a decisão tomada, o motivo dela e como você conferiria o resultado, em pelo menos três frases."
+          : esperado
+            ? `Esperado: a saída precisa conter “${esperado}”. ${output ? `Você obteve: “${output.slice(0, 120)}”.` : "Rode o código para comparar."} Isso vale porque a aula usa exatamente esse resultado para provar que a lógica está certa.`
+            : "Esperado: o programa rodar sem erro. Se aparecer uma mensagem de erro, leia a última linha: ela indica a linha e o tipo do problema.",
+      },
     ];
-  }, [code, activeChallenge, ex.starter, output, guided, completedChallenges, challengeIndex, status, isReflection]);
+  }, [code, activeChallenge, ex.starter, output, srcDoc, guided, completedChallenges, challengeIndex, status, isReflection, isWeb, activeExpected]);
 
 
   return (
