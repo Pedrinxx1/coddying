@@ -91,6 +91,17 @@
   ::selection {
     background: color-mix(in oklab, var(--blue) 40%, transparent);
   }
+
+  :where(a, button, summary, input, textarea, select, [tabindex]):focus-visible {
+    outline: 3px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 0.5rem;
+  }
+
+  :where(section, div, nav)[tabindex="-1"]:focus-visible {
+    outline: 3px dashed var(--cyan);
+    outline-offset: 6px;
+  }
 }
 
 @utility text-gradient {
