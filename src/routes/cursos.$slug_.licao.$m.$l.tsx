@@ -641,7 +641,8 @@ function LessonPage() {
               </div>
             </section>}
 
-            <section className="card-soft p-5 sm:p-6">
+            <section id="aula-quiz" className="card-soft scroll-mt-24 p-5 sm:p-6">
+
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                 <h2 className="font-display text-base font-bold sm:text-lg">Quiz rápido</h2>
                 <span className="shrink-0 text-xs text-muted-foreground">
