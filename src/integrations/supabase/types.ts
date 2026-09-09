@@ -35,6 +35,45 @@ export type Database = {
         }
         Relationships: []
       }
+      certificates: {
+        Row: {
+          code: string
+          course_slug: string
+          id: string
+          issued_at: string
+          project_notes: string | null
+          project_url: string | null
+          score: number
+          student_name: string
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          code: string
+          course_slug: string
+          id?: string
+          issued_at?: string
+          project_notes?: string | null
+          project_url?: string | null
+          score?: number
+          student_name?: string
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          code?: string
+          course_slug?: string
+          id?: string
+          issued_at?: string
+          project_notes?: string | null
+          project_url?: string | null
+          score?: number
+          student_name?: string
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       lesson_progress: {
         Row: {
           completed_at: string
