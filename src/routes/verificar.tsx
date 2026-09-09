@@ -47,11 +47,11 @@ function VerificarPage() {
     }
     setBuscando(true);
     setErro(null);
-    const { data } = await supabase
-      .from("certificates")
-      .select("student_name, course_slug, score, total_questions, issued_at, code")
-      .eq("code", c)
-      .maybeSingle();
+    const { data: rows } = await (supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: Cert[] | null }>)("verify_certificate", { _code: c });
+    const data = rows?.[0] ?? null;
     setBuscando(false);
     if (!data) {
       setCert(null);
