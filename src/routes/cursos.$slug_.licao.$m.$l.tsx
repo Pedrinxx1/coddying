@@ -579,7 +579,7 @@ function LessonPage() {
                   </ul>
                 </section>
               </div>
-            ) : <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+            ) : <div id="aula-explicacao" className="scroll-mt-24 overflow-hidden rounded-2xl border border-border bg-surface">
               {content.sections.map((s, index) => (
                 <section
                   key={`${s.kind}-${index}`}
