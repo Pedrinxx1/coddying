@@ -662,13 +662,19 @@ function LessonPage() {
         )}
 
         {/* Índice clicável das seções da aula */}
-        <nav id="aula-indice" aria-label="Seções da aula" className="nao-imprimir mt-4 scroll-mt-24 flex gap-1 overflow-x-auto border-b border-border pb-3">
+        <nav
+          id="aula-indice"
+          aria-label="Seções da aula"
+          className="nao-imprimir sticky top-16 z-20 -mx-4 mt-4 flex gap-2 overflow-x-auto border-b border-border bg-background/95 px-4 py-2 backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:scroll-mt-24 lg:bg-transparent lg:px-0 lg:backdrop-blur-none"
+          style={{ scrollSnapType: "x mandatory" }}
+        >
           {secoesAula.map((item) => (
             <button
               key={item.id}
               onClick={() => irPara(item.id)}
               aria-keyshortcuts={`Alt+${item.tecla.toUpperCase()}`}
-              className={`min-h-10 shrink-0 rounded-md border px-3 text-sm font-semibold ${secoesVistas.includes(item.id) ? "border-primary/60 text-primary" : "border-border text-muted-foreground"} hover:border-primary/60 hover:text-foreground`}
+              style={{ scrollSnapAlign: "start" }}
+              className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold ${secoesVistas.includes(item.id) ? "border-primary/60 bg-primary/10 text-primary" : "border-border text-muted-foreground"} hover:border-primary/60 hover:text-foreground`}
             >
               {secoesVistas.includes(item.id) && <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" />}
                {item.label}
@@ -676,7 +682,7 @@ function LessonPage() {
           ))}
         </nav>
 
-        <div className="nao-imprimir mt-3 flex flex-wrap gap-2">
+        <div className="nao-imprimir mt-3 hidden flex-wrap gap-2 lg:flex">
           <Button variant="ghost" onClick={() => setAjudaAberta(true)} aria-haspopup="dialog" aria-keyshortcuts="Alt+/"><Keyboard /> Atalhos</Button>
           <Button variant="ghost" onClick={() => window.print()}><Printer /> PDF</Button>
         </div>
