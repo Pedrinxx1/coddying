@@ -197,48 +197,91 @@ function LessonPage() {
   }, [ex]);
 
   const chaveProgresso = `codding:aula:${course.slug}:${m}:${l}`;
+  const restaurado = useRef(false);
+  const [salvoEm, setSalvoEm] = useState<number | null>(null);
+  const [retomadoEm, setRetomadoEm] = useState<number | null>(null);
+  const [anuncio, setAnuncio] = useState("");
 
   useEffect(() => {
+    restaurado.current = false;
     const salvo = localStorage.getItem(chaveProgresso);
-    if (!salvo) return;
+    if (salvo) {
+      try {
+        const p = JSON.parse(salvo) as {
+          code?: string;
+          answers?: Record<number, number>;
+          guidedAnswers?: Record<number, number>;
+          completed?: number[];
+          challengeIndex?: number;
+          secoes?: string[];
+          ultima?: string;
+          updatedAt?: number;
+        };
+        if (typeof p.code === "string" && p.code.trim()) setCode(p.code);
+        if (p.answers) setAnswers(p.answers);
+        if (p.guidedAnswers) setGuidedAnswers(p.guidedAnswers);
+        if (Array.isArray(p.completed)) setCompletedChallenges(new Set(p.completed));
+        if (typeof p.challengeIndex === "number") setChallengeIndex(p.challengeIndex);
+        if (Array.isArray(p.secoes)) setSecoesVistas(p.secoes);
+        if (typeof p.ultima === "string") setUltimaSecao(p.ultima);
+        if (typeof p.updatedAt === "number") setRetomadoEm(p.updatedAt);
+        setRetomavel(
+          Boolean((p.secoes ?? []).length || (p.completed ?? []).length || Object.keys(p.answers ?? {}).length),
+        );
+      } catch {
+        /* progresso inválido é ignorado */
+      }
+    }
+    restaurado.current = true;
+  }, [chaveProgresso]);
+
+  const estadoAtual = useMemo(
+    () => ({
+      code,
+      answers,
+      guidedAnswers,
+      completed: [...completedChallenges],
+      challengeIndex,
+      secoes: secoesVistas,
+      ultima: ultimaSecao,
+    }),
+    [code, answers, guidedAnswers, completedChallenges, challengeIndex, secoesVistas, ultimaSecao],
+  );
+  const estadoRef = useRef(estadoAtual);
+  estadoRef.current = estadoAtual;
+
+  const salvarProgresso = useCallback(() => {
+    if (!restaurado.current) return;
+    const agora = Date.now();
     try {
-      const p = JSON.parse(salvo) as {
-        code?: string;
-        answers?: Record<number, number>;
-        guidedAnswers?: Record<number, number>;
-        completed?: number[];
-        challengeIndex?: number;
-        secoes?: string[];
-        ultima?: string;
-      };
-      if (typeof p.code === "string" && p.code.trim()) setCode(p.code);
-      if (p.answers) setAnswers(p.answers);
-      if (p.guidedAnswers) setGuidedAnswers(p.guidedAnswers);
-      if (Array.isArray(p.completed)) setCompletedChallenges(new Set(p.completed));
-      if (typeof p.challengeIndex === "number") setChallengeIndex(p.challengeIndex);
-      if (Array.isArray(p.secoes)) setSecoesVistas(p.secoes);
-      if (typeof p.ultima === "string") setUltimaSecao(p.ultima);
-      setRetomavel(Boolean((p.secoes ?? []).length || (p.completed ?? []).length || Object.keys(p.answers ?? {}).length));
+      localStorage.setItem(chaveProgresso, JSON.stringify({ ...estadoRef.current, updatedAt: agora }));
+      setSalvoEm(agora);
     } catch {
-      /* progresso inválido é ignorado */
+      /* armazenamento cheio ou indisponível */
     }
   }, [chaveProgresso]);
 
+  // autosave com debounce, e gravação imediata ao sair, trocar de aba ou fechar
   useEffect(() => {
-    localStorage.setItem(
-      chaveProgresso,
-      JSON.stringify({
-        code,
-        answers,
-        guidedAnswers,
-        completed: [...completedChallenges],
-        challengeIndex,
-        secoes: secoesVistas,
-        ultima: ultimaSecao,
-        updatedAt: Date.now(),
-      }),
-    );
-  }, [chaveProgresso, code, answers, guidedAnswers, completedChallenges, challengeIndex, secoesVistas, ultimaSecao]);
+    const t = setTimeout(salvarProgresso, 600);
+    return () => clearTimeout(t);
+  }, [estadoAtual, salvarProgresso]);
+
+  useEffect(() => {
+    const aoSair = () => salvarProgresso();
+    const aoTrocarAba = () => {
+      if (document.visibilityState === "hidden") salvarProgresso();
+    };
+    window.addEventListener("pagehide", aoSair);
+    window.addEventListener("beforeunload", aoSair);
+    document.addEventListener("visibilitychange", aoTrocarAba);
+    return () => {
+      window.removeEventListener("pagehide", aoSair);
+      window.removeEventListener("beforeunload", aoSair);
+      document.removeEventListener("visibilitychange", aoTrocarAba);
+      salvarProgresso();
+    };
+  }, [salvarProgresso]);
 
 
 
