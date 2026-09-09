@@ -615,7 +615,7 @@ function LessonPage() {
               </div>
             </section>
 
-            {!guided && <section className="card-soft overflow-hidden p-0">
+            {!guided && <section id="aula-exemplo" className="card-soft scroll-mt-24 overflow-hidden p-0">
               <div className="border-b border-border px-5 py-4">
                 <h2 className="font-display text-base font-bold sm:text-lg">Exemplo comentado</h2>
                 <p className="mt-1 text-xs text-muted-foreground">{content.example.language}</p>
