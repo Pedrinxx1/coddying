@@ -43,11 +43,23 @@ export const ACHIEVEMENTS: Record<string, { label: string; desc: string }> = {
   streak_3: { label: "Constância", desc: "3 dias seguidos estudando" },
 };
 
+type Attempt = { course_slug: string; score: number; total_questions: number; passed: boolean; created_at: string };
+type Certificate = {
+  course_slug: string;
+  score: number;
+  total_questions: number;
+  project_url: string | null;
+  code: string;
+  issued_at: string;
+};
+
 function Painel() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [progress, setProgress] = useState<Progress[]>([]);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [earned, setEarned] = useState<string[]>([]);
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [certs, setCerts] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("");
