@@ -355,10 +355,11 @@ function ExamPage() {
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             onClick={() => void enviar()}
-            disabled={salvando}
+            disabled={salvando || bloqueado}
             className="bg-brand inline-flex min-h-11 items-center gap-2 rounded-xl px-5 font-bold text-primary-foreground disabled:opacity-60"
           >
-            <FileCheck2 className="h-4 w-4" /> {salvando ? "Emitindo..." : "Enviar prova e projeto"}
+            <FileCheck2 className="h-4 w-4" />{" "}
+            {salvando ? "Emitindo..." : bloqueado ? "Tentativas esgotadas por hoje" : "Enviar prova e projeto"}
           </button>
           {result && (
             <button
