@@ -608,7 +608,7 @@ function LessonPage() {
     <div className="min-h-screen bg-background pb-24 lg:pb-0">
       <SiteHeader crumb={course.title} />
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <Link
             to="/cursos/$slug"
@@ -625,40 +625,61 @@ function LessonPage() {
           <div className="bg-brand h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
 
-        <p className="mt-6 text-xs font-semibold tracking-wide text-cyan uppercase">
-          Módulo {m + 1} • {mod.title}
-        </p>
-        <h1 className="mt-2 font-display text-2xl leading-tight font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
-          {lesson}
-        </h1>
-        {content.topic.title.toLocaleLowerCase("pt-BR") !== lesson.toLocaleLowerCase("pt-BR") && (
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Parte de: {content.topic.title}</p>
+        <div className="mt-5 grid gap-4 border-b border-border pb-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold tracking-wide text-primary uppercase">Módulo {m + 1} • {mod.title}</p>
+            <h1 className="mt-2 max-w-4xl font-display text-2xl leading-tight font-extrabold sm:text-3xl lg:text-4xl">{lesson}</h1>
+          </div>
+          <div className="nao-imprimir relative flex flex-wrap items-center gap-2">
+            <div className="relative min-w-0 flex-1 lg:w-72">
+              <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar aula ou conceito" aria-label="Buscar aulas" className="h-11 w-full rounded-md border border-border bg-surface pl-10 pr-3 text-sm outline-none focus:border-primary" />
+              {resultadosBusca.length > 0 && (
+                <div className="absolute top-12 right-0 left-0 z-40 max-h-72 overflow-auto rounded-md border border-border bg-popover p-1 shadow-xl">
+                  {resultadosBusca.map((result) => (
+                    <Link key={`${result.course.slug}-${result.moduleIndex}-${result.lessonIndex}`} to="/cursos/$slug/licao/$m/$l" params={{ slug: result.course.slug, m: String(result.moduleIndex), l: String(result.lessonIndex) }} onClick={() => setBusca("")} className="block rounded px-3 py-2 hover:bg-accent">
+                      <span className="block text-sm font-semibold">{result.title}</span>
+                      <span className="block text-xs text-muted-foreground">{result.course.title} • {result.module.title}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Button variant="outline" size="icon" className="h-11 w-11" aria-label={favorita ? "Remover aula dos favoritos" : "Favoritar aula"} aria-pressed={favorita} onClick={() => void toggleFavorite()}>
+              <Star className={favorita ? "fill-primary text-primary" : ""} />
+            </Button>
+            <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Abrir anotações" aria-expanded={notaAberta} onClick={() => setNotaAberta((value) => !value)}>
+              <StickyNote />
+            </Button>
+          </div>
+        </div>
+
+        {notaAberta && (
+          <section className="nao-imprimir mt-4 rounded-md border border-primary/40 bg-surface p-4" aria-label="Anotações pessoais">
+            <div className="flex items-center justify-between gap-3"><h2 className="font-display font-bold">Minhas anotações</h2><span className="text-xs text-muted-foreground">Salvas automaticamente</span></div>
+            <textarea value={nota} onChange={(event) => setNota(event.target.value)} placeholder="Registre uma dúvida, descoberta ou exemplo próprio..." className="mt-3 min-h-28 w-full resize-y rounded-md border border-border bg-background p-3 text-sm leading-6 outline-none focus:border-primary" />
+          </section>
         )}
 
         {/* Índice clicável das seções da aula */}
-        <nav id="aula-indice" aria-label="Seções da aula" className="nao-imprimir mt-5 scroll-mt-24 flex flex-wrap gap-2">
+        <nav id="aula-indice" aria-label="Seções da aula" className="nao-imprimir mt-4 scroll-mt-24 flex gap-1 overflow-x-auto border-b border-border pb-3">
           {secoesAula.map((item) => (
             <button
               key={item.id}
               onClick={() => irPara(item.id)}
               aria-keyshortcuts={`Alt+${item.tecla.toUpperCase()}`}
-              className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${secoesVistas.includes(item.id) ? "border-success/60 text-success" : "border-border text-muted-foreground"} hover:border-cyan/60 hover:text-foreground`}
+              className={`min-h-10 shrink-0 rounded-md border px-3 text-sm font-semibold ${secoesVistas.includes(item.id) ? "border-primary/60 text-primary" : "border-border text-muted-foreground"} hover:border-primary/60 hover:text-foreground`}
             >
               {secoesVistas.includes(item.id) && <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" />}
-              {item.label} <span className="text-xs opacity-70">Alt+{item.tecla.toUpperCase()}</span>
+               {item.label}
             </button>
           ))}
         </nav>
 
-        <button
-          onClick={() => setAjudaAberta(true)}
-          aria-haspopup="dialog"
-          aria-keyshortcuts="Alt+/"
-          className="nao-imprimir mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 text-sm font-semibold text-muted-foreground hover:border-cyan/60 hover:text-foreground"
-        >
-          <Keyboard className="h-4 w-4 text-cyan" /> Atalhos de teclado
-          <kbd className="rounded border border-border px-1 text-xs">Alt+/</kbd>
-        </button>
+        <div className="nao-imprimir mt-3 flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={() => setAjudaAberta(true)} aria-haspopup="dialog" aria-keyshortcuts="Alt+/"><Keyboard /> Atalhos</Button>
+          <Button variant="ghost" onClick={() => window.print()}><Printer /> PDF</Button>
+        </div>
 
         {ajudaAberta && (
           <div
@@ -759,7 +780,9 @@ function LessonPage() {
 
 
         {/* Controles de leitura */}
-        <div className="nao-imprimir mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
+        <details className="nao-imprimir mt-3 rounded-md border border-border bg-surface">
+          <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm font-semibold text-muted-foreground"><Type className="h-4 w-4 text-primary" /> Opções de leitura</summary>
+          <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-3">
           <span className="inline-flex items-center gap-2 text-xs font-bold uppercase text-cyan">
             <Type className="h-4 w-4" /> Leitura
           </span>
@@ -792,13 +815,8 @@ function LessonPage() {
           >
             <WrapText className="h-4 w-4" /> Quebra de linha
           </button>
-          <button
-            onClick={() => window.print()}
-            className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
-          >
-            <Printer className="h-4 w-4" /> Baixar PDF da aula
-          </button>
-        </div>
+          </div>
+        </details>
 
 
         {/* Índice do módulo — navegação rápida entre lições */}
