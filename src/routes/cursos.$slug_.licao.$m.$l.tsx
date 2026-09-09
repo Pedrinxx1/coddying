@@ -575,36 +575,113 @@ function LessonPage() {
           ))}
         </nav>
 
-        <details className="nao-imprimir mt-3 rounded-xl border border-border px-3 py-2">
-          <summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-muted-foreground">
-            <Keyboard className="h-4 w-4 text-cyan" /> Atalhos de teclado
-          </summary>
-          <ul className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-            {secoesAula.map((item) => (
-              <li key={item.id}>
-                <kbd className="rounded border border-border px-1">Alt+{item.tecla.toUpperCase()}</kbd> ir para {item.label.toLowerCase()}
-              </li>
-            ))}
-            <li><kbd className="rounded border border-border px-1">Alt+I</kbd> voltar ao índice</li>
-            <li><kbd className="rounded border border-border px-1">Alt+N</kbd> próximo passo / próxima lição</li>
-            <li><kbd className="rounded border border-border px-1">Alt+B</kbd> lição anterior</li>
-            <li><kbd className="rounded border border-border px-1">Alt+H</kbd> pedir dica</li>
-            <li><kbd className="rounded border border-border px-1">Alt+K</kbd> verificar a prática</li>
-            <li><kbd className="rounded border border-border px-1">Alt+D</kbd> baixar PDF da aula</li>
-          </ul>
-        </details>
+        <button
+          onClick={() => setAjudaAberta(true)}
+          aria-haspopup="dialog"
+          aria-keyshortcuts="Alt+/"
+          className="nao-imprimir mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 text-sm font-semibold text-muted-foreground hover:border-cyan/60 hover:text-foreground"
+        >
+          <Keyboard className="h-4 w-4 text-cyan" /> Atalhos de teclado
+          <kbd className="rounded border border-border px-1 text-xs">Alt+/</kbd>
+        </button>
+
+        {ajudaAberta && (
+          <div
+            className="nao-imprimir fixed inset-0 z-50 grid place-items-center bg-background/80 p-4"
+            onClick={() => setAjudaAberta(false)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ajuda-atalhos-titulo"
+              onClick={(e) => e.stopPropagation()}
+              className="card-soft max-h-[80dvh] w-full max-w-lg overflow-auto p-5"
+            >
+              <h2 id="ajuda-atalhos-titulo" className="inline-flex items-center gap-2 font-display text-xl font-extrabold">
+                <Keyboard className="h-5 w-5 text-cyan" /> Atalhos de teclado da aula
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Use estes atalhos para navegar pela aula sem mouse. Pressione Esc para fechar.
+              </p>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-cyan">Índice e seções</h3>
+              <ul className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+I</kbd> voltar ao índice da aula
+                </li>
+                {secoesAula.map((item) => (
+                  <li key={item.id}>
+                    <kbd className="rounded border border-border px-1.5 py-0.5">Alt+{item.tecla.toUpperCase()}</kbd> ir
+                    para {item.label.toLowerCase()}
+                  </li>
+                ))}
+              </ul>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-cyan">Próximos passos</h3>
+              <ul className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+N</kbd> próximo passo da prática ou
+                  próxima lição
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+B</kbd> lição anterior
+                </li>
+              </ul>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-cyan">Começar a prática</h3>
+              <ul className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+P</kbd> ir para a prática guiada
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+K</kbd> verificar sua resposta
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+H</kbd> pedir a próxima dica
+                </li>
+              </ul>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-cyan">Revisar e imprimir</h3>
+              <ul className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+R</kbd> ir para a revisão
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+Q</kbd> ir para o quiz
+                </li>
+                <li>
+                  <kbd className="rounded border border-border px-1.5 py-0.5">Alt+D</kbd> baixar PDF / imprimir a aula
+                </li>
+              </ul>
+              <button
+                autoFocus
+                onClick={() => setAjudaAberta(false)}
+                className="bg-brand mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-xl font-bold text-primary-foreground"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        )}
+
+        <p aria-live="polite" className="sr-only">
+          {anuncio}
+        </p>
 
         {retomavel && (
           <p className="nao-imprimir mt-3 inline-flex flex-wrap items-center gap-2 rounded-xl border border-cyan/50 px-4 py-3 text-sm text-cyan">
-            <Sparkles className="h-4 w-4" /> Retomamos de onde você parou nesta aula.
-            <button
-              onClick={() => irPara(ultimaSecao)}
-              className="min-h-11 font-bold underline underline-offset-4"
-            >
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <span className="min-w-0">
+              Retomar de onde parei: você estava em{" "}
+              <strong>{secoesAula.find((s) => s.id === ultimaSecao)?.label ?? "Explicação"}</strong>
+              {retomadoEm ? ` (salvo em ${new Date(retomadoEm).toLocaleString("pt-BR")})` : ""}.
+            </span>
+            <button onClick={() => irPara(ultimaSecao)} className="min-h-11 font-bold underline underline-offset-4">
               Continuar
             </button>
           </p>
         )}
+
+        <p aria-live="polite" className="nao-imprimir mt-2 text-xs text-muted-foreground">
+          {salvoEm ? `Progresso salvo automaticamente às ${new Date(salvoEm).toLocaleTimeString("pt-BR")}` : ""}
+        </p>
+
 
         {/* Controles de leitura */}
         <div className="nao-imprimir mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
