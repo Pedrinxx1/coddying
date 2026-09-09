@@ -295,6 +295,85 @@ function Painel() {
         </section>
 
         <section className="mt-12">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-2xl font-extrabold">Provas, projetos e certificados</h2>
+            <div className="nao-imprimir flex flex-wrap gap-2">
+              <button
+                onClick={baixarCSV}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold"
+              >
+                <Download className="h-4 w-4" /> Exportar CSV
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold"
+              >
+                <Printer className="h-4 w-4" /> Salvar PDF / imprimir
+              </button>
+            </div>
+          </div>
+          {comAtividade.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Você ainda não fez nenhuma prova final. Termine um curso e faça a prova para gerar seu certificado.
+            </p>
+          ) : (
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[42rem] border-collapse text-sm">
+                <caption className="sr-only">Seu progresso, notas das provas e status do projeto por curso</caption>
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th scope="col" className="px-3 py-2">Curso</th>
+                    <th scope="col" className="px-3 py-2">Progresso</th>
+                    <th scope="col" className="px-3 py-2">Tentativas</th>
+                    <th scope="col" className="px-3 py-2">Melhor nota</th>
+                    <th scope="col" className="px-3 py-2">Projeto</th>
+                    <th scope="col" className="px-3 py-2">Certificado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comAtividade.map((h) => (
+                    <tr key={h.slug} className="border-t border-border align-middle">
+                      <th scope="row" className="px-3 py-3 text-left font-semibold">
+                        {h.titulo}
+                      </th>
+                      <td className="px-3 py-3 text-muted-foreground">
+                        {h.done}/{h.total} ({h.pct}%)
+                      </td>
+                      <td className="px-3 py-3 text-muted-foreground">{h.tentativas}</td>
+                      <td className="px-3 py-3 text-muted-foreground">
+                        {h.melhor ? `${h.melhor.score}/${h.melhor.total_questions}` : "—"}
+                      </td>
+                      <td className="px-3 py-3">
+                        {h.cert?.project_url ? (
+                          <span className="text-success">Entregue</span>
+                        ) : (
+                          <span className="text-muted-foreground">Pendente</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {h.cert ? (
+                          <Link
+                            to="/cursos/$slug/certificado"
+                            params={{ slug: h.slug }}
+                            className="font-semibold text-cyan"
+                          >
+                            Ver certificado
+                          </Link>
+                        ) : (
+                          <Link to="/cursos/$slug/prova" params={{ slug: h.slug }} className="text-muted-foreground underline">
+                            Fazer a prova
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-12">
           <h2 className="font-display text-2xl font-extrabold">Conquistas</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(ACHIEVEMENTS).map(([code, a]) => {
