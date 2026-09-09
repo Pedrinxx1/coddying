@@ -311,6 +311,36 @@ function LessonPage() {
   const guidedCompleted = guidedCorrect + completedChallenges.size;
   const guidedReady = !guided || guidedCompleted === guidedTotal;
 
+  const dicas = useMemo(() => {
+    if (!activeChallenge) return [] as string[];
+    const lista = [
+      `Releia o objetivo com calma: ${activeChallenge.instruction}`,
+      activeChallenge.hint,
+    ];
+    lista.push(
+      isReflection
+        ? "Escreva em três partes: a decisão que você tomaria, o motivo dela e como conferiria o resultado."
+        : activeChallenge.expected && activeChallenge.expected !== "\n"
+          ? `A resposta precisa produzir “${activeChallenge.expected}”. Compare linha a linha com o exemplo resolvido da aula.`
+          : "Volte ao exemplo resolvido da aula e reproduza a mesma estrutura, trocando só os valores.",
+    );
+    return lista;
+  }, [activeChallenge, isReflection]);
+
+  const checkpoints = useMemo(() => {
+    const escreveu = code.trim().length > 0 && code.trim() !== (activeChallenge?.starter ?? ex.starter).trim();
+    const semLacunas = !/____|\.\.\.|escreva aqui/i.test(code);
+    const executou = output !== null;
+    const acertou = guided ? completedChallenges.has(challengeIndex) : status === "ok";
+    return [
+      { label: escreveu ? "Você já escreveu sua própria versão" : "Escreva sua versão a partir do modelo", ok: escreveu },
+      { label: semLacunas ? "Nenhuma lacuna deixada em branco" : "Ainda há lacunas para preencher (____)", ok: semLacunas },
+      { label: executou ? (isReflection ? "Análise revisada" : "Código executado") : isReflection ? "Clique em revisar análise" : "Clique em verificar para executar", ok: executou },
+      { label: acertou ? "Resultado conferido e correto" : "Resultado ainda não confere com o esperado", ok: acertou },
+    ];
+  }, [code, activeChallenge, ex.starter, output, guided, completedChallenges, challengeIndex, status, isReflection]);
+
+
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-0">
       <SiteHeader crumb={course.title} />
