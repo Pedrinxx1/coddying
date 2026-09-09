@@ -31,7 +31,6 @@ const fallbackStarters: Record<string, string> = {
 
 export function lessonContent(course: Course, moduleTitle: string, lessonTitle: string): LessonContent {
   const topic = findTopic(lessonTitle, moduleTitle, course.lang);
-  const guided = interactiveLesson(course.slug, lessonTitle);
 
   const sections = [
     { title: "Visão geral", body: topic.intro, kind: "overview" as const },
@@ -47,14 +46,7 @@ export function lessonContent(course: Course, moduleTitle: string, lessonTitle: 
     },
   ];
 
-  const exercise: Exercise = guided
-    ? {
-        prompt: guided.challenges[0]?.instruction ?? "Imprima Olá, mundo!",
-        starter: guided.challenges[0]?.starter ?? `print("Olá, mundo!")`,
-        expected: guided.challenges[0]?.expected ?? "Olá, mundo!",
-        language: course.lang,
-      }
-    : webLangs.has(course.lang)
+  const exercise: Exercise = webLangs.has(course.lang)
     ? {
         prompt: `Prática guiada: edite o exemplo abaixo aplicando "${lessonTitle}" e clique em Rodar para ver o resultado ao vivo.`,
         starter: topic.example.language === "html" ? topic.example.code : `<!doctype html>\n<html lang="pt-BR">\n  <head><meta charset="utf-8" /></head>\n  <body style="font-family:system-ui;padding:2rem">\n    <h1>${lessonTitle}</h1>\n  </body>\n</html>`,
@@ -75,7 +67,13 @@ export function lessonContent(course: Course, moduleTitle: string, lessonTitle: 
           language: course.lang,
         };
 
-  return { topic, sections, example: topic.example, quiz: topic.quiz, exercise, guided };
+  const guided = interactiveLesson(course.slug, lessonTitle, topic, exercise);
+  const firstChallenge = guided.challenges[0];
+  const guidedExercise = firstChallenge
+    ? { prompt: firstChallenge.instruction, starter: firstChallenge.starter, expected: firstChallenge.expected, language: exercise.language }
+    : exercise;
+
+  return { topic, sections, example: topic.example, quiz: topic.quiz, exercise: guidedExercise, guided };
 }
 
 // Compatibilidade com chamadas antigas
