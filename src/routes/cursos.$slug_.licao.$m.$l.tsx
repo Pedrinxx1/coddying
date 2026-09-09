@@ -787,8 +787,10 @@ function LessonPage() {
 
         {/* Controles de leitura */}
         <details className="nao-imprimir mt-3 rounded-md border border-border bg-surface">
-          <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm font-semibold text-muted-foreground"><Type className="h-4 w-4 text-primary" /> Opções de leitura</summary>
+          <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm font-semibold text-muted-foreground"><Type className="h-4 w-4 text-primary" /> Ferramentas e leitura</summary>
           <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-3">
+          <Button variant="outline" className="lg:hidden" onClick={() => setAjudaAberta(true)} aria-haspopup="dialog"><Keyboard /> Atalhos</Button>
+          <Button variant="outline" className="lg:hidden" onClick={() => window.print()}><Printer /> PDF</Button>
           <span className="inline-flex items-center gap-2 text-xs font-bold uppercase text-cyan">
             <Type className="h-4 w-4" /> Leitura
           </span>
