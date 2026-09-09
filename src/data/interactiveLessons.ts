@@ -279,7 +279,7 @@ function buildGuidedLesson(courseSlug: string, lessonTitle: string, topic: Topic
     steps: concepts,
     challenges: [
       {
-        title: "Prática final",
+        title: activityMode === "reflection" ? "Estudo de caso" : activityMode === "preview" ? "Laboratório visual" : "Laboratório prático",
         instruction: activityMode === "reflection"
           ? `Resolva um cenário real sobre “${lessonTitle}”: descreva a decisão que tomaria, por que ela faz sentido e como verificaria se funcionou.`
           : exercise.prompt,

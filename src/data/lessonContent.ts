@@ -20,15 +20,6 @@ export type LessonContent = {
 
 const webLangs = new Set(["html", "css"]);
 
-const fallbackStarters: Record<string, string> = {
-  python: `# Some os números de 1 a 5 e imprima o resultado\ntotal = 0\n# escreva seu código aqui\nprint(total)`,
-  javascript: `// Some os números de 1 a 5 e imprima o resultado\nlet total = 0;\n// escreva seu código aqui\nconsole.log(total);`,
-  typescript: `// Some os números de 1 a 5 e imprima o resultado\nlet total: number = 0;\n// escreva seu código aqui\nconsole.log(total);`,
-  java: `public class Main {\n    public static void main(String[] args) {\n        int total = 0;\n        // escreva seu código aqui\n        System.out.println(total);\n    }\n}`,
-  sqlite3: `-- Deve imprimir 15\nSELECT 1 + 2 + 3 + 4;`,
-  bash: `# Some os números de 1 a 5 e imprima o resultado\ntotal=0\n# escreva seu código aqui\necho $total`,
-};
-
 export function lessonContent(course: Course, moduleTitle: string, lessonTitle: string): LessonContent {
   const topic = findTopic(lessonTitle, moduleTitle, course.lang);
 
@@ -61,10 +52,10 @@ export function lessonContent(course: Course, moduleTitle: string, lessonTitle: 
           language: topic.exercise.language ?? course.lang,
         }
       : {
-          prompt: `Desafio: faça o programa imprimir exatamente 15 (a soma de 1 a 5) usando o que você viu em "${lessonTitle}".`,
-          starter: fallbackStarters[course.lang] ?? fallbackStarters["python"] ?? "",
-          expected: "15",
-          language: course.lang,
+          prompt: `Laboratório de ${lessonTitle}: execute o exemplo, identifique entrada, processamento e saída e altere pelo menos um valor para observar como o resultado muda.`,
+          starter: topic.example.code,
+          expected: null,
+          language: topic.example.language || course.lang,
         };
 
   const guided = interactiveLesson(course.slug, lessonTitle, topic, exercise);

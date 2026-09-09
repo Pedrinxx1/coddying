@@ -226,9 +226,12 @@ function LessonPage() {
       setOutput(out);
       const normalizedOutput = out.replace(/\r/g, "").trim();
       const hasPlaceholder = /____|\.\.\.|# crie|# complete/i.test(code);
-      const correct = !hasPlaceholder && (activeExpected === "\n"
-        ? normalizedOutput.split("\n").filter(Boolean).length >= 2
-        : normalizedOutput.includes(activeExpected ?? ""));
+      const ranWithoutError = !res.stderr && !res.error;
+      const correct = !hasPlaceholder && (activeExpected === null
+        ? ranWithoutError
+        : activeExpected === "\n"
+          ? normalizedOutput.split("\n").filter(Boolean).length >= 2
+          : normalizedOutput.includes(activeExpected));
       setStatus(correct ? "ok" : "fail");
       if (correct && guided) setCompletedChallenges((old) => new Set(old).add(challengeIndex));
     } catch {
