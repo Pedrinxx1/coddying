@@ -10,6 +10,7 @@ import {
   ChevronDown,
   CircleDashed,
   Contrast,
+  Keyboard,
   Lightbulb,
   ListChecks,
   Loader2,
@@ -117,6 +118,15 @@ export const Route = createFileRoute("/cursos/$slug_/licao/$m/$l")({
   ),
 });
 
+const secoesAula = [
+  { id: "aula-explicacao", label: "Explicação", tecla: "e" },
+  { id: "aula-exemplo", label: "Exemplo", tecla: "x" },
+  { id: "aula-pratica", label: "Prática", tecla: "p" },
+  { id: "aula-quiz", label: "Quiz", tecla: "q" },
+  { id: "aula-videos", label: "Vídeos", tecla: "v" },
+  { id: "aula-revisao", label: "Revisão", tecla: "r" },
+];
+
 function LessonPage() {
   const { course, mod, lesson, m, l } = Route.useLoaderData();
   const navigate = useNavigate();
@@ -144,6 +154,9 @@ function LessonPage() {
   const [challengeIndex, setChallengeIndex] = useState(0);
   const [completedChallenges, setCompletedChallenges] = useState<Set<number>>(new Set());
   const [hintLevel, setHintLevel] = useState(0);
+  const [secoesVistas, setSecoesVistas] = useState<string[]>([]);
+  const [ultimaSecao, setUltimaSecao] = useState("aula-explicacao");
+  const [retomavel, setRetomavel] = useState(false);
   const [escala, setEscala] = useState(1);
   const [contraste, setContraste] = useState(false);
   const [quebra, setQuebra] = useState(true);
@@ -178,7 +191,56 @@ function LessonPage() {
     setChallengeIndex(0);
     setCompletedChallenges(new Set());
     setHintLevel(0);
+    setSecoesVistas([]);
+    setUltimaSecao("aula-explicacao");
+    setRetomavel(false);
   }, [ex]);
+
+  const chaveProgresso = `codding:aula:${course.slug}:${m}:${l}`;
+
+  useEffect(() => {
+    const salvo = localStorage.getItem(chaveProgresso);
+    if (!salvo) return;
+    try {
+      const p = JSON.parse(salvo) as {
+        code?: string;
+        answers?: Record<number, number>;
+        guidedAnswers?: Record<number, number>;
+        completed?: number[];
+        challengeIndex?: number;
+        secoes?: string[];
+        ultima?: string;
+      };
+      if (typeof p.code === "string" && p.code.trim()) setCode(p.code);
+      if (p.answers) setAnswers(p.answers);
+      if (p.guidedAnswers) setGuidedAnswers(p.guidedAnswers);
+      if (Array.isArray(p.completed)) setCompletedChallenges(new Set(p.completed));
+      if (typeof p.challengeIndex === "number") setChallengeIndex(p.challengeIndex);
+      if (Array.isArray(p.secoes)) setSecoesVistas(p.secoes);
+      if (typeof p.ultima === "string") setUltimaSecao(p.ultima);
+      setRetomavel(Boolean((p.secoes ?? []).length || (p.completed ?? []).length || Object.keys(p.answers ?? {}).length));
+    } catch {
+      /* progresso inválido é ignorado */
+    }
+  }, [chaveProgresso]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      chaveProgresso,
+      JSON.stringify({
+        code,
+        answers,
+        guidedAnswers,
+        completed: [...completedChallenges],
+        challengeIndex,
+        secoes: secoesVistas,
+        ultima: ultimaSecao,
+        updatedAt: Date.now(),
+      }),
+    );
+  }, [chaveProgresso, code, answers, guidedAnswers, completedChallenges, challengeIndex, secoesVistas, ultimaSecao]);
+
+
 
 
   useEffect(() => {
@@ -330,15 +392,95 @@ function LessonPage() {
   const checkpoints = useMemo(() => {
     const escreveu = code.trim().length > 0 && code.trim() !== (activeChallenge?.starter ?? ex.starter).trim();
     const semLacunas = !/____|\.\.\.|escreva aqui/i.test(code);
-    const executou = output !== null;
+    const executou = output !== null || (isWeb && srcDoc.length > 0);
     const acertou = guided ? completedChallenges.has(challengeIndex) : status === "ok";
+    const esperado = activeExpected && activeExpected !== "\n" ? activeExpected : null;
     return [
-      { label: escreveu ? "Você já escreveu sua própria versão" : "Escreva sua versão a partir do modelo", ok: escreveu },
-      { label: semLacunas ? "Nenhuma lacuna deixada em branco" : "Ainda há lacunas para preencher (____)", ok: semLacunas },
-      { label: executou ? (isReflection ? "Análise revisada" : "Código executado") : isReflection ? "Clique em revisar análise" : "Clique em verificar para executar", ok: executou },
-      { label: acertou ? "Resultado conferido e correto" : "Resultado ainda não confere com o esperado", ok: acertou },
+      {
+        label: escreveu ? "Você já escreveu sua própria versão" : "Escreva sua versão a partir do modelo",
+        ok: escreveu,
+        detail: "O texto do editor ainda é igual ao modelo inicial. Altere pelo menos uma linha para que a prática conte como sua.",
+      },
+      {
+        label: semLacunas ? "Nenhuma lacuna deixada em branco" : "Ainda há lacunas para preencher",
+        ok: semLacunas,
+        detail: "Substitua os trechos ____ (ou “escreva aqui”) pelo conteúdo pedido — enquanto eles existirem, o resultado não pode ser conferido.",
+      },
+      {
+        label: executou ? (isReflection ? "Análise revisada" : "Código executado") : isReflection ? "Revise sua análise" : "Execute seu código",
+        ok: executou,
+        detail: isReflection
+          ? "Clique em “Revisar análise” para conferir se sua resposta tem decisão, motivo e forma de verificação."
+          : "Clique em “Verificar resposta” para rodar seu código e comparar a saída com o esperado.",
+      },
+      {
+        label: acertou ? "Resultado conferido e correto" : "Resultado ainda não confere",
+        ok: acertou,
+        detail: isReflection
+          ? "Esperado: uma resposta com a decisão tomada, o motivo dela e como você conferiria o resultado, em pelo menos três frases."
+          : esperado
+            ? `Esperado: a saída precisa conter “${esperado}”. ${output ? `Você obteve: “${output.slice(0, 120)}”.` : "Rode o código para comparar."} Isso vale porque a aula usa exatamente esse resultado para provar que a lógica está certa.`
+            : "Esperado: o programa rodar sem erro. Se aparecer uma mensagem de erro, leia a última linha: ela indica a linha e o tipo do problema.",
+      },
     ];
-  }, [code, activeChallenge, ex.starter, output, guided, completedChallenges, challengeIndex, status, isReflection]);
+  }, [code, activeChallenge, ex.starter, output, srcDoc, guided, completedChallenges, challengeIndex, status, isReflection, isWeb, activeExpected]);
+
+  function irPara(id: string) {
+    const alternativas: Record<string, string> = { "aula-revisao": "aula-quiz", "aula-exemplo": "aula-explicacao" };
+    const alvo = document.getElementById(id) ?? document.getElementById(alternativas[id] ?? "");
+    if (!alvo) return;
+    alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+    alvo.setAttribute("tabindex", "-1");
+    alvo.focus({ preventScroll: true });
+    if (id !== "aula-indice") {
+      setSecoesVistas((old) => (old.includes(id) ? old : [...old, id]));
+      setUltimaSecao(id);
+    }
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      const tecla = e.key.toLowerCase();
+      const secao = secoesAula.find((s) => s.tecla === tecla);
+      if (secao) {
+        e.preventDefault();
+        irPara(secao.id);
+        return;
+      }
+      if (tecla === "i") {
+        e.preventDefault();
+        irPara("aula-indice");
+      } else if (tecla === "n") {
+        e.preventDefault();
+        if (guided && challengeIndex + 1 < guided.challenges.length) {
+          const proximo = guided.challenges[challengeIndex + 1];
+          setChallengeIndex(challengeIndex + 1);
+          if (proximo) setCode(proximo.starter);
+          setHintLevel(0);
+          setOutput(null);
+          setStatus("idle");
+          irPara("aula-pratica");
+        } else if (next) {
+          void navigate({ to: "/cursos/$slug/licao/$m/$l", params: { slug: course.slug, m: String(next.m), l: String(next.l) } });
+        }
+      } else if (tecla === "b" && prev) {
+        e.preventDefault();
+        void navigate({ to: "/cursos/$slug/licao/$m/$l", params: { slug: course.slug, m: String(prev.m), l: String(prev.l) } });
+      } else if (tecla === "h") {
+        e.preventDefault();
+        setHintLevel((v) => Math.min(v + 1, dicas.length));
+      } else if (tecla === "k") {
+        e.preventDefault();
+        void check();
+      } else if (tecla === "d") {
+        e.preventDefault();
+        window.print();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
 
   return (
@@ -373,24 +515,50 @@ function LessonPage() {
         )}
 
         {/* Índice clicável das seções da aula */}
-        <nav aria-label="Seções da aula" className="nao-imprimir mt-5 flex flex-wrap gap-2">
-          {[
-            { id: "aula-explicacao", label: "Explicação" },
-            { id: "aula-exemplo", label: "Exemplo" },
-            { id: "aula-pratica", label: "Prática" },
-            { id: "aula-quiz", label: "Quiz" },
-            { id: "aula-videos", label: "Vídeos" },
-            { id: "aula-revisao", label: "Revisão" },
-          ].map((item) => (
+        <nav id="aula-indice" aria-label="Seções da aula" className="nao-imprimir mt-5 scroll-mt-24 flex flex-wrap gap-2">
+          {secoesAula.map((item) => (
             <button
               key={item.id}
-              onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="min-h-11 rounded-full border border-border px-4 text-sm font-semibold text-muted-foreground hover:border-cyan/60 hover:text-foreground"
+              onClick={() => irPara(item.id)}
+              aria-keyshortcuts={`Alt+${item.tecla.toUpperCase()}`}
+              className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${secoesVistas.includes(item.id) ? "border-success/60 text-success" : "border-border text-muted-foreground"} hover:border-cyan/60 hover:text-foreground`}
             >
-              {item.label}
+              {secoesVistas.includes(item.id) && <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" />}
+              {item.label} <span className="text-xs opacity-70">Alt+{item.tecla.toUpperCase()}</span>
             </button>
           ))}
         </nav>
+
+        <details className="nao-imprimir mt-3 rounded-xl border border-border px-3 py-2">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-muted-foreground">
+            <Keyboard className="h-4 w-4 text-cyan" /> Atalhos de teclado
+          </summary>
+          <ul className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+            {secoesAula.map((item) => (
+              <li key={item.id}>
+                <kbd className="rounded border border-border px-1">Alt+{item.tecla.toUpperCase()}</kbd> ir para {item.label.toLowerCase()}
+              </li>
+            ))}
+            <li><kbd className="rounded border border-border px-1">Alt+I</kbd> voltar ao índice</li>
+            <li><kbd className="rounded border border-border px-1">Alt+N</kbd> próximo passo / próxima lição</li>
+            <li><kbd className="rounded border border-border px-1">Alt+B</kbd> lição anterior</li>
+            <li><kbd className="rounded border border-border px-1">Alt+H</kbd> pedir dica</li>
+            <li><kbd className="rounded border border-border px-1">Alt+K</kbd> verificar a prática</li>
+            <li><kbd className="rounded border border-border px-1">Alt+D</kbd> baixar PDF da aula</li>
+          </ul>
+        </details>
+
+        {retomavel && (
+          <p className="nao-imprimir mt-3 inline-flex flex-wrap items-center gap-2 rounded-xl border border-cyan/50 px-4 py-3 text-sm text-cyan">
+            <Sparkles className="h-4 w-4" /> Retomamos de onde você parou nesta aula.
+            <button
+              onClick={() => irPara(ultimaSecao)}
+              className="min-h-11 font-bold underline underline-offset-4"
+            >
+              Continuar
+            </button>
+          </p>
+        )}
 
         {/* Controles de leitura */}
         <div className="nao-imprimir mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
@@ -686,10 +854,32 @@ function LessonPage() {
                         })}
                       </div>
                       {escolhida !== undefined && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {escolhida === q.answer ? "Isso! " : "Quase. "}
-                          {q.why}
-                        </p>
+                        <div
+                          aria-live="polite"
+                          className={`mt-3 rounded-xl border px-3 py-2 text-xs leading-5 ${escolhida === q.answer ? "border-success/50" : "border-warn/50"}`}
+                        >
+                          <p className={`font-bold ${escolhida === q.answer ? "text-success" : "text-warn"}`}>
+                            {escolhida === q.answer ? "Você acertou" : "Você errou esta"}
+                          </p>
+                          {escolhida !== q.answer && (
+                            <>
+                              <p className="mt-1 text-muted-foreground">
+                                <span className="font-semibold text-foreground">Sua resposta:</span> {q.options[escolhida]}
+                              </p>
+                              <p className="mt-1 text-muted-foreground">
+                                <span className="font-semibold text-success">Correção esperada:</span> {q.options[q.answer]}
+                              </p>
+                            </>
+                          )}
+                          <p className="mt-1 text-muted-foreground">
+                            <span className="font-semibold text-cyan">Por que faz sentido:</span> {q.why}
+                          </p>
+                          {escolhida !== q.answer && (
+                            <button onClick={() => perguntar(q.q)} className="mt-2 font-semibold text-cyan">
+                              Ver essa parte da aula com o tutor →
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
@@ -817,19 +1007,27 @@ function LessonPage() {
                 </ol>
               )}
 
-              <ul className="border-t border-border px-4 py-3">
-                <li className="mb-2 text-xs font-bold uppercase text-violet">Checkpoints da prática</li>
+              <ul aria-live="polite" className="border-t border-border px-4 py-3">
+                <li className="mb-2 text-xs font-bold uppercase text-violet">
+                  Checkpoints da prática ({checkpoints.filter((cp) => cp.ok).length}/{checkpoints.length})
+                </li>
                 {checkpoints.map((cp) => (
-                  <li key={cp.label} className="flex items-start gap-2 py-1 text-sm leading-6">
+                  <li key={cp.label} className="flex items-start gap-2 py-1.5 text-sm leading-6">
                     {cp.ok ? (
                       <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />
                     ) : (
-                      <CircleDashed className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <XCircle className="mt-1 h-4 w-4 shrink-0 text-warn" />
                     )}
-                    <span className={`min-w-0 break-words ${cp.ok ? "text-success" : "text-muted-foreground"}`}>{cp.label}</span>
+                    <span className="min-w-0">
+                      <span className={`block break-words ${cp.ok ? "text-success" : "text-foreground"}`}>{cp.label}</span>
+                      {!cp.ok && (
+                        <span className="mt-0.5 block break-words text-xs leading-5 text-muted-foreground">{cp.detail}</span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
+
 
 
               {isWeb ? (
