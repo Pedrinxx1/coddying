@@ -1,6 +1,6 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, LogOut, Menu, Terminal, User2, X } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, Menu, Terminal, User2, X } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,6 +9,25 @@ export function SiteHeader({ crumb }: { crumb?: string }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState<string | null>(null);
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!user) {
@@ -106,52 +125,81 @@ export function SiteHeader({ crumb }: { crumb?: string }) {
 
         <button
           onClick={() => setOpen((v) => !v)}
-          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border md:hidden"
-          aria-label="Menu"
+          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border md:hidden"
+          aria-label={open ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={open}
+          aria-controls="menu-celular"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {open && (
-        <div className="border-t border-border bg-background px-4 py-4 md:hidden">
-          <div className="flex flex-col gap-2">
-            <Link to="/cursos" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm font-semibold">
-              Cursos
-            </Link>
-            <Link
-              to="/playground"
-              onClick={() => setOpen(false)}
-              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold"
-            >
-              <Terminal className="h-4 w-4" /> Playground
-            </Link>
-            {user ? (
-              <>
-                <Link
-                  to="/painel"
-                  onClick={() => setOpen(false)}
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold"
-                >
-                  <LayoutDashboard className="h-4 w-4" /> Meu painel
-                </Link>
-                <button
-                  onClick={signOut}
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-muted-foreground"
-                >
-                  <LogOut className="h-4 w-4" /> Sair
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/entrar"
-                onClick={() => setOpen(false)}
-                className="bg-brand rounded-xl px-4 py-2.5 text-center text-sm font-bold text-primary-foreground"
-              >
-                Entrar / Criar conta
-              </Link>
+        <div className="fixed inset-0 top-16 z-50 md:hidden">
+          <button
+            aria-label="Fechar menu"
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+          />
+          <nav
+            id="menu-celular"
+            aria-label="Menu principal"
+            className="absolute inset-x-0 top-0 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-border bg-background px-4 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl"
+          >
+            {crumb && (
+              <p className="mb-3 truncate text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {crumb}
+              </p>
             )}
-          </div>
+            <div className="flex flex-col gap-1.5">
+              <Link
+                to="/cursos"
+                className="inline-flex min-h-12 items-center gap-3 rounded-xl border border-border bg-surface px-4 text-sm font-semibold"
+              >
+                <BookOpen className="h-4 w-4 shrink-0 text-primary" /> Cursos
+              </Link>
+              <Link
+                to="/playground"
+                className="inline-flex min-h-12 items-center gap-3 rounded-xl border border-border bg-surface px-4 text-sm font-semibold"
+              >
+                <Terminal className="h-4 w-4 shrink-0 text-primary" /> Playground
+              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to="/painel"
+                    className="inline-flex min-h-12 items-center gap-3 rounded-xl border border-border bg-surface px-4 text-sm font-semibold"
+                  >
+                    <LayoutDashboard className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0 truncate">{name ?? "Meu painel"}</span>
+                  </Link>
+                  <button
+                    onClick={signOut}
+                    className="inline-flex min-h-12 items-center gap-3 rounded-xl border border-border px-4 text-left text-sm font-semibold text-muted-foreground"
+                  >
+                    <LogOut className="h-4 w-4 shrink-0" /> Sair
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/entrar"
+                    className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold"
+                  >
+                    <User2 className="mr-2 h-4 w-4" /> Entrar
+                  </Link>
+                  <Link
+                    to="/entrar"
+                    search={{ modo: "cadastro" }}
+                    className="bg-brand inline-flex min-h-12 items-center justify-center rounded-xl px-4 text-sm font-bold text-primary-foreground"
+                  >
+                    Começar grátis
+                  </Link>
+                </>
+              )}
+            </div>
+          </nav>
         </div>
       )}
     </header>

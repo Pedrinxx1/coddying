@@ -605,7 +605,7 @@ function LessonPage() {
 
 
   return (
-    <div className="min-h-screen bg-background pb-24 lg:pb-0">
+    <div className="min-h-screen bg-background pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0">
       <SiteHeader crumb={course.title} />
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7">
@@ -662,13 +662,19 @@ function LessonPage() {
         )}
 
         {/* Índice clicável das seções da aula */}
-        <nav id="aula-indice" aria-label="Seções da aula" className="nao-imprimir mt-4 scroll-mt-24 flex gap-1 overflow-x-auto border-b border-border pb-3">
+        <nav
+          id="aula-indice"
+          aria-label="Seções da aula"
+          className="nao-imprimir sticky top-16 z-20 -mx-4 mt-4 flex gap-2 overflow-x-auto border-b border-border bg-background/95 px-4 py-2 backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:scroll-mt-24 lg:bg-transparent lg:px-0 lg:backdrop-blur-none"
+          style={{ scrollSnapType: "x mandatory" }}
+        >
           {secoesAula.map((item) => (
             <button
               key={item.id}
               onClick={() => irPara(item.id)}
               aria-keyshortcuts={`Alt+${item.tecla.toUpperCase()}`}
-              className={`min-h-10 shrink-0 rounded-md border px-3 text-sm font-semibold ${secoesVistas.includes(item.id) ? "border-primary/60 text-primary" : "border-border text-muted-foreground"} hover:border-primary/60 hover:text-foreground`}
+              style={{ scrollSnapAlign: "start" }}
+              className={`min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold ${secoesVistas.includes(item.id) ? "border-primary/60 bg-primary/10 text-primary" : "border-border text-muted-foreground"} hover:border-primary/60 hover:text-foreground`}
             >
               {secoesVistas.includes(item.id) && <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" />}
                {item.label}
@@ -676,7 +682,7 @@ function LessonPage() {
           ))}
         </nav>
 
-        <div className="nao-imprimir mt-3 flex flex-wrap gap-2">
+        <div className="nao-imprimir mt-3 hidden flex-wrap gap-2 lg:flex">
           <Button variant="ghost" onClick={() => setAjudaAberta(true)} aria-haspopup="dialog" aria-keyshortcuts="Alt+/"><Keyboard /> Atalhos</Button>
           <Button variant="ghost" onClick={() => window.print()}><Printer /> PDF</Button>
         </div>
@@ -781,8 +787,10 @@ function LessonPage() {
 
         {/* Controles de leitura */}
         <details className="nao-imprimir mt-3 rounded-md border border-border bg-surface">
-          <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm font-semibold text-muted-foreground"><Type className="h-4 w-4 text-primary" /> Opções de leitura</summary>
+          <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm font-semibold text-muted-foreground"><Type className="h-4 w-4 text-primary" /> Ferramentas e leitura</summary>
           <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-3">
+          <Button variant="outline" className="lg:hidden" onClick={() => setAjudaAberta(true)} aria-haspopup="dialog"><Keyboard /> Atalhos</Button>
+          <Button variant="outline" className="lg:hidden" onClick={() => window.print()}><Printer /> PDF</Button>
           <span className="inline-flex items-center gap-2 text-xs font-bold uppercase text-cyan">
             <Type className="h-4 w-4" /> Leitura
           </span>
@@ -1398,7 +1406,7 @@ function LessonPage() {
       </main>
 
       {/* Barra fixa de navegação no celular */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 py-2.5 backdrop-blur-xl lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
           {prev ? (
             <Link
