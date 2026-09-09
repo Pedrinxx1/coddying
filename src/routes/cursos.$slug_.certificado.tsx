@@ -146,6 +146,12 @@ function CertificatePage() {
               >
                 Voltar ao curso
               </Link>
+              <Link
+                to="/verificar"
+                className="inline-flex min-h-11 items-center rounded-xl border border-border px-5 font-semibold"
+              >
+                Página de validação pública
+              </Link>
             </div>
           </>
         )}
