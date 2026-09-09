@@ -587,7 +587,7 @@ function LessonPage() {
               ))}
             </div>}
 
-            <section className="card-soft p-5 sm:p-6">
+            <section id="aula-videos" className="card-soft scroll-mt-24 p-5 sm:p-6">
               <div className="flex items-center gap-2">
                 <PlayCircle className="h-4 w-4 shrink-0 text-violet" />
                 <h2 className="font-display text-base font-bold sm:text-lg">Videoaulas sobre este tema</h2>
