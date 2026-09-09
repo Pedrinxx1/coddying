@@ -709,10 +709,32 @@ function LessonPage() {
                         })}
                       </div>
                       {escolhida !== undefined && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {escolhida === q.answer ? "Isso! " : "Quase. "}
-                          {q.why}
-                        </p>
+                        <div
+                          aria-live="polite"
+                          className={`mt-3 rounded-xl border px-3 py-2 text-xs leading-5 ${escolhida === q.answer ? "border-success/50" : "border-warn/50"}`}
+                        >
+                          <p className={`font-bold ${escolhida === q.answer ? "text-success" : "text-warn"}`}>
+                            {escolhida === q.answer ? "Você acertou" : "Você errou esta"}
+                          </p>
+                          {escolhida !== q.answer && (
+                            <>
+                              <p className="mt-1 text-muted-foreground">
+                                <span className="font-semibold text-foreground">Sua resposta:</span> {q.options[escolhida]}
+                              </p>
+                              <p className="mt-1 text-muted-foreground">
+                                <span className="font-semibold text-success">Correção esperada:</span> {q.options[q.answer]}
+                              </p>
+                            </>
+                          )}
+                          <p className="mt-1 text-muted-foreground">
+                            <span className="font-semibold text-cyan">Por que faz sentido:</span> {q.why}
+                          </p>
+                          {escolhida !== q.answer && (
+                            <button onClick={() => perguntar(q.q)} className="mt-2 font-semibold text-cyan">
+                              Ver essa parte da aula com o tutor →
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
