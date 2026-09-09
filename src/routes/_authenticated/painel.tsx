@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Award, Code2, Flame, Loader2, Save, Trash2, Trophy, Zap } from "lucide-react";
+import { Award, Code2, Download, Flame, Loader2, Printer, Save, Trash2, Trophy, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { supabase } from "@/integrations/supabase/client";
