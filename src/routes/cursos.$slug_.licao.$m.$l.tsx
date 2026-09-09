@@ -363,6 +363,62 @@ function LessonPage() {
     ];
   }, [code, activeChallenge, ex.starter, output, srcDoc, guided, completedChallenges, challengeIndex, status, isReflection, isWeb, activeExpected]);
 
+  function irPara(id: string) {
+    const alvo = document.getElementById(id);
+    if (!alvo) return;
+    alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+    alvo.setAttribute("tabindex", "-1");
+    alvo.focus({ preventScroll: true });
+    if (id !== "aula-indice") {
+      setSecoesVistas((old) => (old.includes(id) ? old : [...old, id]));
+      setUltimaSecao(id);
+    }
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      const tecla = e.key.toLowerCase();
+      const secao = secoesAula.find((s) => s.tecla === tecla);
+      if (secao) {
+        e.preventDefault();
+        irPara(secao.id);
+        return;
+      }
+      if (tecla === "i") {
+        e.preventDefault();
+        irPara("aula-indice");
+      } else if (tecla === "n") {
+        e.preventDefault();
+        if (guided && challengeIndex + 1 < guided.challenges.length) {
+          const proximo = guided.challenges[challengeIndex + 1];
+          setChallengeIndex(challengeIndex + 1);
+          if (proximo) setCode(proximo.starter);
+          setHintLevel(0);
+          setOutput(null);
+          setStatus("idle");
+          irPara("aula-pratica");
+        } else if (next) {
+          void navigate({ to: "/cursos/$slug/licao/$m/$l", params: { slug: course.slug, m: String(next.m), l: String(next.l) } });
+        }
+      } else if (tecla === "b" && prev) {
+        e.preventDefault();
+        void navigate({ to: "/cursos/$slug/licao/$m/$l", params: { slug: course.slug, m: String(prev.m), l: String(prev.l) } });
+      } else if (tecla === "h") {
+        e.preventDefault();
+        setHintLevel((v) => Math.min(v + 1, dicas.length));
+      } else if (tecla === "k") {
+        e.preventDefault();
+        void check();
+      } else if (tecla === "d") {
+        e.preventDefault();
+        window.print();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
 
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-0">
