@@ -65,6 +65,11 @@ export function finalExam(course: Course): QuizQuestion[] {
       }
     }
   }
+  for (const q of examBank[course.slug] ?? []) {
+    if (seen.has(q.q)) continue;
+    seen.add(q.q);
+    pool.push(q);
+  }
   if (pool.length <= EXAM_SIZE) return pool;
   // amostragem determinística e espalhada por todo o curso
   const step = pool.length / EXAM_SIZE;
