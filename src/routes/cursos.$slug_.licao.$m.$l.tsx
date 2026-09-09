@@ -567,7 +567,7 @@ function LessonPage() {
                     </section>
                   );
                 })}
-                <section className="border-t border-border pt-8">
+                <section id="aula-revisao" className="scroll-mt-24 border-t border-border pt-8">
                   <h2 className="text-xl font-bold">O que você aprendeu</h2>
                   <ul className="mt-4 space-y-3">
                     {guided.recap.map((item) => <li key={item} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />{item}</li>)}
