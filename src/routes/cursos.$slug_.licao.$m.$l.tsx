@@ -817,19 +817,27 @@ function LessonPage() {
                 </ol>
               )}
 
-              <ul className="border-t border-border px-4 py-3">
-                <li className="mb-2 text-xs font-bold uppercase text-violet">Checkpoints da prática</li>
+              <ul aria-live="polite" className="border-t border-border px-4 py-3">
+                <li className="mb-2 text-xs font-bold uppercase text-violet">
+                  Checkpoints da prática ({checkpoints.filter((cp) => cp.ok).length}/{checkpoints.length})
+                </li>
                 {checkpoints.map((cp) => (
-                  <li key={cp.label} className="flex items-start gap-2 py-1 text-sm leading-6">
+                  <li key={cp.label} className="flex items-start gap-2 py-1.5 text-sm leading-6">
                     {cp.ok ? (
                       <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />
                     ) : (
-                      <CircleDashed className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <XCircle className="mt-1 h-4 w-4 shrink-0 text-warn" />
                     )}
-                    <span className={`min-w-0 break-words ${cp.ok ? "text-success" : "text-muted-foreground"}`}>{cp.label}</span>
+                    <span className="min-w-0">
+                      <span className={`block break-words ${cp.ok ? "text-success" : "text-foreground"}`}>{cp.label}</span>
+                      {!cp.ok && (
+                        <span className="mt-0.5 block break-words text-xs leading-5 text-muted-foreground">{cp.detail}</span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
+
 
 
               {isWeb ? (
