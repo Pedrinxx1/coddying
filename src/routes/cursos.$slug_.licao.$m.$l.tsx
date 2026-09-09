@@ -673,13 +673,44 @@ function LessonPage() {
                 >
                   Recomeçar
                 </button>
-                {activeChallenge && <Button variant="ghost" size="sm" onClick={() => setShowHint((value) => !value)}><Lightbulb className="h-3.5 w-3.5" /> Dica</Button>}
+                {activeChallenge && (
+                  <Button variant="ghost" size="sm" onClick={() => setHintLevel((v) => Math.min(v + 1, dicas.length))}>
+                    <Lightbulb className="h-3.5 w-3.5" /> {hintLevel === 0 ? "Pedir dica" : hintLevel >= dicas.length ? "Todas as dicas" : `Mais uma dica (${hintLevel}/${dicas.length})`}
+                  </Button>
+                )}
                 <Link to="/playground" className="ml-auto text-xs font-semibold text-cyan">
                   Abrir no playground
                 </Link>
               </div>
 
-              {showHint && activeChallenge && <p className="border-t border-border px-4 py-3 text-sm leading-6 text-warn">{activeChallenge.hint}</p>}
+              {hintLevel > 0 && activeChallenge && (
+                <ol className="border-t border-border px-4 py-3">
+                  {dicas.slice(0, hintLevel).map((dica, index) => (
+                    <li key={dica} className="mt-1 flex items-start gap-2 text-sm leading-6 text-warn first:mt-0">
+                      <span className="mt-1 text-xs font-bold">{index + 1}.</span>
+                      <span className="min-w-0 break-words">{dica}</span>
+                    </li>
+                  ))}
+                  {hintLevel < dicas.length && (
+                    <li className="mt-2 text-xs text-muted-foreground">Tente de novo antes de abrir a próxima dica.</li>
+                  )}
+                </ol>
+              )}
+
+              <ul className="border-t border-border px-4 py-3">
+                <li className="mb-2 text-xs font-bold uppercase text-violet">Checkpoints da prática</li>
+                {checkpoints.map((cp) => (
+                  <li key={cp.label} className="flex items-start gap-2 py-1 text-sm leading-6">
+                    {cp.ok ? (
+                      <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />
+                    ) : (
+                      <CircleDashed className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className={`min-w-0 break-words ${cp.ok ? "text-success" : "text-muted-foreground"}`}>{cp.label}</span>
+                  </li>
+                ))}
+              </ul>
+
 
               {isWeb ? (
                 srcDoc && (
