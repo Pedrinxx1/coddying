@@ -26,3 +26,4 @@
 - [x] Aplicar o fluxo visual Immersive Studio Workspace com grafite, verde, Outfit e Figtree
 - [x] Implementar busca de aulas, favoritos e anotações pessoais
 - [x] Auditar o catálogo completo e validar celular, desktop, teclado e impressão
+- [x] Garantir que exemplos, práticas e execução usem exclusivamente a linguagem de cada curso

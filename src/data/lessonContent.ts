@@ -22,6 +22,7 @@ const webLangs = new Set(["html", "css"]);
 
 export function lessonContent(course: Course, moduleTitle: string, lessonTitle: string): LessonContent {
   const topic = findTopic(lessonTitle, moduleTitle, course.lang, course.slug);
+  const lessonLanguage = topic.example.language;
 
   const sections = [
     { title: "Visão geral", body: topic.intro, kind: "overview" as const },
@@ -49,13 +50,13 @@ export function lessonContent(course: Course, moduleTitle: string, lessonTitle: 
           prompt: topic.exercise.prompt,
           starter: topic.exercise.starter,
           expected: topic.exercise.expected,
-          language: topic.exercise.language ?? course.lang,
+          language: lessonLanguage,
         }
       : {
           prompt: `Laboratório de ${lessonTitle}: execute o exemplo, identifique entrada, processamento e saída e altere pelo menos um valor para observar como o resultado muda.`,
           starter: topic.example.code,
           expected: null,
-          language: topic.example.language || course.lang,
+          language: lessonLanguage,
         };
 
   const guided = interactiveLesson(course.slug, lessonTitle, topic, exercise);

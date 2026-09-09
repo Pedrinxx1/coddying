@@ -1402,6 +1402,111 @@ export const topics: Topic[] = [...pythonTopics, ...extraTopics, ...baseTopics];
 const stripAccents = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+const languageByCourse: Record<string, string> = {
+  "logica-de-programacao": "python",
+  "html-css": "html",
+  "git-github": "bash",
+  javascript: "javascript",
+  typescript: "typescript",
+  react: "javascript",
+  "tailwind-css": "html",
+  python: "python",
+  java: "java",
+  "spring-boot": "java",
+  nodejs: "javascript",
+  sql: "sqlite3",
+  "estruturas-de-dados": "python",
+  "ciencia-de-dados": "python",
+  "machine-learning": "python",
+  "prompt-engineering": "text",
+  "react-native": "javascript",
+  "docker-devops": "bash",
+  "carreira-dev": "text",
+};
+
+function isLanguageCompatible(courseSlug: string, exampleLanguage: string) {
+  const expected = languageByCourse[courseSlug];
+  if (!expected) return true;
+  if (courseSlug === "html-css" || courseSlug === "tailwind-css") {
+    return exampleLanguage === "html" || exampleLanguage === "css";
+  }
+  return exampleLanguage === expected;
+}
+
+function courseExample(courseSlug: string, lessonTitle: string, moduleTitle: string, lang: string) {
+  const language = languageByCourse[courseSlug] ?? lang;
+  if (language === "java") return {
+    language,
+    code: `public class Main {
+    public static void main(String[] args) {
+        String assunto = "${lessonTitle}";
+        System.out.println("Praticando: " + assunto);
+    }
+}`,
+  };
+  if (language === "javascript") return {
+    language,
+    code: `const assunto = "${lessonTitle}";
+const modulo = "${moduleTitle}";
+
+console.log(\`Praticando: \${assunto}\`);
+console.log(\`Módulo: \${modulo}\`);`,
+  };
+  if (language === "typescript") return {
+    language,
+    code: `type Aula = { assunto: string; modulo: string };
+
+const aula: Aula = {
+  assunto: "${lessonTitle}",
+  modulo: "${moduleTitle}",
+};
+
+console.log(\`Praticando: \${aula.assunto}\`);`,
+  };
+  if (language === "html") return {
+    language,
+    code: `<!doctype html>
+<html lang="pt-BR">
+  <head><meta charset="utf-8"><title>${lessonTitle}</title></head>
+  <body>
+    <main>
+      <h1>${lessonTitle}</h1>
+      <p>Exercício do módulo ${moduleTitle}.</p>
+    </main>
+  </body>
+</html>`,
+  };
+  if (language === "sqlite3") return {
+    language,
+    code: `CREATE TABLE aula (id INTEGER PRIMARY KEY, assunto TEXT NOT NULL);
+INSERT INTO aula (assunto) VALUES ('${lessonTitle.replaceAll("'", "''")}');
+SELECT id, assunto FROM aula;`,
+  };
+  if (language === "bash") return {
+    language,
+    code: `#!/usr/bin/env bash
+assunto="${lessonTitle}"
+modulo="${moduleTitle}"
+printf 'Praticando: %s\\nMódulo: %s\\n' "$assunto" "$modulo"`,
+  };
+  if (language === "text") return {
+    language,
+    code: `Cenário: ${lessonTitle}
+Objetivo: aplicar o conteúdo no módulo ${moduleTitle}
+Decisão:
+Justificativa:
+Evidência esperada:`,
+  };
+  return {
+    language: "python",
+    code: `assunto = "${lessonTitle}"
+modulo = "${moduleTitle}"
+
+print(f"Praticando: {assunto}")
+print(f"Módulo: {modulo}")`,
+  };
+}
+
 const topicScope: Record<string, string[]> = {
   "logica-de-programacao": ["algoritmo", "erros", "variaveis", "condicionais", "lacos", "funcoes", "colecoes", "strings", "listas-arrays", "dicionarios", "recursao", "ordenacao-busca", "complexidade"],
   "html-css": ["html-estrutura", "css-layout", "flexbox", "grid-responsivo", "formularios", "acessibilidade"],
@@ -1425,29 +1530,19 @@ const topicScope: Record<string, string[]> = {
 };
 
 function courseFallback(courseSlug: string, lessonTitle: string, moduleTitle: string, lang: string): Topic {
-  const isMarkup = courseSlug === "html-css" || courseSlug === "tailwind-css";
-  const isData = ["sql", "ciencia-de-dados", "machine-learning"].includes(courseSlug);
-  const isOps = ["git-github", "docker-devops", "carreira-dev", "prompt-engineering"].includes(courseSlug);
-  const code = isMarkup
-    ? `<main>\n  <h1>${lessonTitle}</h1>\n  <p>Exemplo prático do módulo ${moduleTitle}.</p>\n</main>`
-    : isData
-      ? `# ${lessonTitle}\n# 1. observe os dados de entrada\n# 2. aplique a operação\n# 3. confira o resultado`
-      : isOps
-        ? `# Cenário: ${lessonTitle}\n# Objetivo: aplicar a técnica com segurança\n# Verificação: registrar evidências do resultado`
-        : `# ${lessonTitle}\n# Substitua o exemplo pelo seu teste\nprint("${lessonTitle}")`;
-  const language = isMarkup ? "html" : lang;
+  const example = courseExample(courseSlug, lessonTitle, moduleTitle, lang);
   return {
     id: `course:${courseSlug}:${stripAccents(moduleTitle)}:${stripAccents(lessonTitle)}`,
     title: lessonTitle,
     keys: [lessonTitle],
-    langs: [lang],
+    langs: [example.language],
     intro: `${lessonTitle} faz parte do módulo ${moduleTitle} de ${courseSlug.replaceAll("-", " ")}. Nesta aula, você vai entender o problema que esse recurso resolve, quando usá-lo e como verificar o resultado sem misturá-lo com conceitos de outra matéria.`,
     deep: [
       `Comece identificando o objetivo de ${lessonTitle}. Separe o que entra, a decisão ou transformação realizada e a evidência que confirma que a solução funcionou.`,
       `Aplique ${lessonTitle} primeiro em um exemplo pequeno. Observe cada mudança antes de combinar esse recurso com outras partes do módulo ${moduleTitle}.`,
       `Depois do primeiro resultado, teste uma variação e um caso que pode falhar. Essa comparação mostra os limites do conceito e evita decorar uma única resposta.`,
     ],
-    example: { language, code, explain: `O exemplo mantém o foco em ${lessonTitle}: apresenta a intenção, a aplicação e uma forma objetiva de conferir o resultado.` },
+    example: { ...example, explain: `O exemplo usa ${example.language} — a linguagem deste curso — e mantém o foco em ${lessonTitle}, sem reaproveitar código de outra formação.` },
     pitfalls: [
       `Aplicar ${lessonTitle} sem definir antes qual resultado precisa ser observado.`,
       "Copiar o exemplo sem alterar valores e sem prever o que deve acontecer.",
@@ -1469,6 +1564,7 @@ export function findTopic(lessonTitle: string, moduleTitle: string, lang: string
   for (const t of topics) {
     if (allowedIds && !allowedIds.includes(t.id)) continue;
     if (t.langs && !t.langs.includes(lang)) continue;
+    if (!isLanguageCompatible(courseSlug, t.example.language)) continue;
     let score = 0;
     for (const k of t.keys) {
       const key = stripAccents(k);

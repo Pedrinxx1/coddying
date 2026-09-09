@@ -193,7 +193,7 @@ function buildWalkthrough(code: string) {
 
 function getLessonMode(courseSlug: string, language: string): "code" | "preview" | "reflection" {
   if (language === "html" || language === "css") return "preview";
-  if (["git-github", "docker-devops", "carreira-dev", "prompt-engineering"].includes(courseSlug)) return "reflection";
+  if (["carreira-dev", "prompt-engineering"].includes(courseSlug) || language === "text") return "reflection";
   return "code";
 }
 
@@ -279,7 +279,7 @@ function buildGuidedLesson(courseSlug: string, lessonTitle: string, topic: Topic
   return {
     duration: "50–75 min",
     level: "Aula guiada",
-    language: topic.example.language || exercise.language,
+    language: exercise.language,
     opening: `Nesta aula, você vai compreender ${lessonTitle} com explicação progressiva, exemplo resolvido, checagens e prática. Nada de apenas copiar: cada etapa prepara a próxima.`,
     prerequisite: "Leia a aula anterior do módulo se algum termo parecer novo. Você pode testar o exemplo antes de continuar.",
     objectives: [
