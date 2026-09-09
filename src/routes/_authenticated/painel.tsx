@@ -70,12 +70,21 @@ function Painel() {
       const { data: u } = await supabase.auth.getUser();
       const uid = u.user?.id;
       if (!uid) return;
-      const [p, pr, sn, ac] = await Promise.all([
+      const [p, pr, sn, ac, at, ce] = await Promise.all([
         supabase.from("profiles").select("display_name, avatar_url, xp, streak").eq("id", uid).maybeSingle(),
         supabase.from("lesson_progress").select("course_slug, module_index, lesson_index"),
         supabase.from("snippets").select("id, title, language, filename, code, updated_at").order("updated_at", { ascending: false }),
         supabase.from("achievements").select("code"),
+        supabase
+          .from("exam_attempts")
+          .select("course_slug, score, total_questions, passed, created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("certificates")
+          .select("course_slug, score, total_questions, project_url, code, issued_at"),
       ]);
+      setAttempts(at.data ?? []);
+      setCerts((ce.data ?? []) as Certificate[]);
       setProfile(p.data ?? { display_name: null, avatar_url: null, xp: 0, streak: 0 });
       setName(p.data?.display_name ?? "");
       setAvatar(p.data?.avatar_url ?? "");
