@@ -1,5 +1,6 @@
 import type { Course } from "./courses";
 import { findTopic, type QuizQuestion } from "./lessonLibrary";
+import { examBank } from "./examBank";
 
 export type FinalProject = {
   title: string;
