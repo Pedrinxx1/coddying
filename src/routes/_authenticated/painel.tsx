@@ -141,6 +141,55 @@ function Painel() {
     setSnippets((s) => s.filter((x) => x.id !== id));
   }
 
+  /** Linhas do histórico: uma por curso com progresso, notas e status do projeto. */
+  const historico = courses.map((c) => {
+    const done = progress.filter((p) => p.course_slug === c.slug).length;
+    const total = countLessons(c);
+    const tent = attempts.filter((a) => a.course_slug === c.slug);
+    const melhor = tent.reduce(
+      (best, a) => (best && best.score / best.total_questions >= a.score / a.total_questions ? best : a),
+      null as Attempt | null,
+    );
+    const cert = certs.find((x) => x.course_slug === c.slug) ?? null;
+    return {
+      slug: c.slug,
+      titulo: c.title,
+      done,
+      total,
+      pct: total ? Math.round((done / total) * 100) : 0,
+      tentativas: tent.length,
+      melhor,
+      cert,
+    };
+  });
+
+  const comAtividade = historico.filter((h) => h.done > 0 || h.tentativas > 0 || h.cert);
+
+  function baixarCSV() {
+    const linhas = [
+      ["Curso", "Licoes concluidas", "Total de licoes", "Progresso %", "Tentativas de prova", "Melhor nota", "Projeto entregue", "Certificado", "Emitido em"],
+      ...comAtividade.map((h) => [
+        h.titulo,
+        String(h.done),
+        String(h.total),
+        String(h.pct),
+        String(h.tentativas),
+        h.melhor ? `${h.melhor.score}/${h.melhor.total_questions}` : "-",
+        h.cert?.project_url ? "Sim" : "Nao",
+        h.cert?.code ?? "-",
+        h.cert ? new Date(h.cert.issued_at).toLocaleDateString("pt-BR") : "-",
+      ]),
+    ];
+    const csv = linhas.map((l) => l.map((v) => `"${v.replace(/"/g, '""')}"`).join(";")).join("\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "codding-historico.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Histórico exportado em CSV.");
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
