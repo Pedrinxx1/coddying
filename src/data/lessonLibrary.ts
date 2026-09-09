@@ -1402,12 +1402,72 @@ export const topics: Topic[] = [...pythonTopics, ...extraTopics, ...baseTopics];
 const stripAccents = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-export function findTopic(lessonTitle: string, moduleTitle: string, lang: string): Topic {
+const topicScope: Record<string, string[]> = {
+  "logica-de-programacao": ["algoritmo", "erros", "variaveis", "condicionais", "lacos", "funcoes", "colecoes", "strings", "listas-arrays", "dicionarios", "recursao", "ordenacao-busca", "complexidade"],
+  "html-css": ["html-estrutura", "css-layout", "flexbox", "grid-responsivo", "formularios", "acessibilidade"],
+  "git-github": ["git"],
+  javascript: ["variaveis", "condicionais", "lacos", "funcoes", "colecoes", "strings", "listas-arrays", "dicionarios", "erros", "dom", "async", "testes", "autenticacao", "api-rest"],
+  typescript: ["typescript", "variaveis", "funcoes", "colecoes", "poo", "testes"],
+  react: ["react-componentes", "react-hooks", "dom", "async", "formularios", "testes", "autenticacao"],
+  "tailwind-css": ["css-layout", "flexbox", "grid-responsivo", "formularios", "acessibilidade"],
+  python: ["python-basico", "python-arquivos-json", "python-pacotes-ambiente", "python-decoradores-geradores", "python-modelagem-objetos", "python-producao", "variaveis", "condicionais", "lacos", "funcoes", "colecoes", "strings", "listas-arrays", "dicionarios", "excecoes", "recursao", "testes"],
+  java: ["poo", "variaveis", "condicionais", "lacos", "funcoes", "colecoes", "excecoes", "testes"],
+  "spring-boot": ["api-rest", "poo", "autenticacao", "testes"],
+  nodejs: ["api-rest", "async", "autenticacao", "testes", "javascript"],
+  sql: ["sql"],
+  "estruturas-de-dados": ["estruturas", "listas-arrays", "dicionarios", "recursao", "ordenacao-busca", "complexidade"],
+  "ciencia-de-dados": ["dados-ia", "python-arquivos-json"],
+  "machine-learning": ["dados-ia"],
+  "prompt-engineering": ["carreira"],
+  "react-native": ["mobile", "react-componentes", "react-hooks"],
+  "docker-devops": ["docker"],
+  "carreira-dev": ["carreira"],
+};
+
+function courseFallback(courseSlug: string, lessonTitle: string, moduleTitle: string, lang: string): Topic {
+  const isMarkup = courseSlug === "html-css" || courseSlug === "tailwind-css";
+  const isData = ["sql", "ciencia-de-dados", "machine-learning"].includes(courseSlug);
+  const isOps = ["git-github", "docker-devops", "carreira-dev", "prompt-engineering"].includes(courseSlug);
+  const code = isMarkup
+    ? `<main>\n  <h1>${lessonTitle}</h1>\n  <p>Exemplo prático do módulo ${moduleTitle}.</p>\n</main>`
+    : isData
+      ? `# ${lessonTitle}\n# 1. observe os dados de entrada\n# 2. aplique a operação\n# 3. confira o resultado`
+      : isOps
+        ? `# Cenário: ${lessonTitle}\n# Objetivo: aplicar a técnica com segurança\n# Verificação: registrar evidências do resultado`
+        : `# ${lessonTitle}\n# Substitua o exemplo pelo seu teste\nprint("${lessonTitle}")`;
+  const language = isMarkup ? "html" : lang;
+  return {
+    id: `course:${courseSlug}:${stripAccents(moduleTitle)}:${stripAccents(lessonTitle)}`,
+    title: lessonTitle,
+    keys: [lessonTitle],
+    langs: [lang],
+    intro: `${lessonTitle} faz parte do módulo ${moduleTitle} de ${courseSlug.replaceAll("-", " ")}. Nesta aula, você vai entender o problema que esse recurso resolve, quando usá-lo e como verificar o resultado sem misturá-lo com conceitos de outra matéria.`,
+    deep: [
+      `Comece identificando o objetivo de ${lessonTitle}. Separe o que entra, a decisão ou transformação realizada e a evidência que confirma que a solução funcionou.`,
+      `Aplique ${lessonTitle} primeiro em um exemplo pequeno. Observe cada mudança antes de combinar esse recurso com outras partes do módulo ${moduleTitle}.`,
+      `Depois do primeiro resultado, teste uma variação e um caso que pode falhar. Essa comparação mostra os limites do conceito e evita decorar uma única resposta.`,
+    ],
+    example: { language, code, explain: `O exemplo mantém o foco em ${lessonTitle}: apresenta a intenção, a aplicação e uma forma objetiva de conferir o resultado.` },
+    pitfalls: [
+      `Aplicar ${lessonTitle} sem definir antes qual resultado precisa ser observado.`,
+      "Copiar o exemplo sem alterar valores e sem prever o que deve acontecer.",
+      "Mudar várias partes ao mesmo tempo e não conseguir localizar a causa de um erro.",
+    ],
+    quiz: [
+      { q: `Qual é o primeiro passo ao trabalhar com ${lessonTitle}?`, options: ["Copiar uma solução inteira", "Definir o objetivo e a evidência esperada", "Ignorar a entrada", "Alterar tudo de uma vez"], answer: 1, why: "Um objetivo observável permite comparar o resultado e diagnosticar diferenças." },
+      { q: "Como verificar se você realmente entendeu?", options: ["Relendo sem testar", "Memorizando a forma", "Explicando, variando o exemplo e conferindo o resultado", "Usando sempre os mesmos valores"], answer: 2, why: "Explicar e variar exige compreender a relação entre entrada, transformação e saída." },
+    ],
+  };
+}
+
+export function findTopic(lessonTitle: string, moduleTitle: string, lang: string, courseSlug = ""): Topic {
   const normalizedLesson = stripAccents(lessonTitle);
   const normalizedModule = stripAccents(moduleTitle);
   let best: { t: Topic; score: number } | null = null;
 
+  const allowedIds = topicScope[courseSlug];
   for (const t of topics) {
+    if (allowedIds && !allowedIds.includes(t.id)) continue;
     if (t.langs && !t.langs.includes(lang)) continue;
     let score = 0;
     for (const k of t.keys) {
@@ -1418,19 +1478,6 @@ export function findTopic(lessonTitle: string, moduleTitle: string, lang: string
     }
     if (score > 0 && (!best || score > best.score)) best = { t, score };
   }
-  if (best) return best.t;
-
-  // fallback por linguagem do curso
-  const byLang: Record<string, string> = {
-    html: "html-estrutura",
-    css: "css-layout",
-    javascript: "variaveis",
-    typescript: "typescript",
-    python: "python-basico",
-    java: "poo",
-    sqlite3: "sql",
-    bash: "docker",
-  };
-  const id = byLang[lang] ?? "algoritmo";
-  return topics.find((t) => t.id === id) ?? topics[0]!;
+  if (best && best.score >= 100) return best.t;
+  return courseFallback(courseSlug, lessonTitle, moduleTitle, lang);
 }
