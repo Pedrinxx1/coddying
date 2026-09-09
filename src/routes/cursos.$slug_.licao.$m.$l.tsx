@@ -475,6 +475,8 @@ function LessonPage() {
     alvo.scrollIntoView({ behavior: "smooth", block: "start" });
     alvo.setAttribute("tabindex", "-1");
     alvo.focus({ preventScroll: true });
+    const nome = secoesAula.find((s) => s.id === id)?.label ?? "Índice da aula";
+    setAnuncio(`Seção ${nome}`);
     if (id !== "aula-indice") {
       setSecoesVistas((old) => (old.includes(id) ? old : [...old, id]));
       setUltimaSecao(id);
