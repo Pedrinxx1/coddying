@@ -372,6 +372,69 @@ function LessonPage() {
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Parte de: {content.topic.title}</p>
         )}
 
+        {/* Índice clicável das seções da aula */}
+        <nav aria-label="Seções da aula" className="nao-imprimir mt-5 flex flex-wrap gap-2">
+          {[
+            { id: "aula-explicacao", label: "Explicação" },
+            { id: "aula-exemplo", label: "Exemplo" },
+            { id: "aula-pratica", label: "Prática" },
+            { id: "aula-quiz", label: "Quiz" },
+            { id: "aula-videos", label: "Vídeos" },
+            { id: "aula-revisao", label: "Revisão" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="min-h-11 rounded-full border border-border px-4 text-sm font-semibold text-muted-foreground hover:border-cyan/60 hover:text-foreground"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Controles de leitura */}
+        <div className="nao-imprimir mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
+          <span className="inline-flex items-center gap-2 text-xs font-bold uppercase text-cyan">
+            <Type className="h-4 w-4" /> Leitura
+          </span>
+          <button
+            onClick={() => setEscala((v) => Math.max(0.85, Number((v - 0.1).toFixed(2))))}
+            aria-label="Diminuir tamanho da letra"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <span className="text-xs font-semibold text-muted-foreground">{Math.round(escala * 100)}%</span>
+          <button
+            onClick={() => setEscala((v) => Math.min(1.6, Number((v + 0.1).toFixed(2))))}
+            aria-label="Aumentar tamanho da letra"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setContraste((v) => !v)}
+            aria-pressed={contraste}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold ${contraste ? "border-cyan text-cyan" : "border-border text-muted-foreground"}`}
+          >
+            <Contrast className="h-4 w-4" /> Alto contraste
+          </button>
+          <button
+            onClick={() => setQuebra((v) => !v)}
+            aria-pressed={quebra}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 text-sm font-semibold ${quebra ? "border-cyan text-cyan" : "border-border text-muted-foreground"}`}
+          >
+            <WrapText className="h-4 w-4" /> Quebra de linha
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
+          >
+            <Printer className="h-4 w-4" /> Baixar PDF da aula
+          </button>
+        </div>
+
+
         {/* Índice do módulo — navegação rápida entre lições */}
         <div className="card-soft mt-5 overflow-hidden p-0">
           <button
