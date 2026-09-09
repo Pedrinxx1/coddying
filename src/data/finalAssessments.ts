@@ -66,17 +66,17 @@ export function finalExam(course: Course): QuizQuestion[] {
       }
     }
   }
-  for (const q of examBank[course.slug] ?? []) {
-    if (seen.has(q.q)) continue;
-    seen.add(q.q);
-    pool.push(q);
-  }
-  if (pool.length <= EXAM_SIZE) return pool;
+  // o banco escrito para o curso tem prioridade: é sempre 100% do assunto
+  const banco = (examBank[course.slug] ?? []).filter((q) => !seen.has(q.q));
+  const escolhidas = banco.slice(0, EXAM_SIZE);
+  const faltam = EXAM_SIZE - escolhidas.length;
+  if (faltam <= 0) return escolhidas;
+  if (pool.length <= faltam) return [...escolhidas, ...pool];
   // amostragem determinística e espalhada por todo o curso
-  const step = pool.length / EXAM_SIZE;
+  const step = pool.length / faltam;
   const picked: QuizQuestion[] = [];
-  for (let i = 0; i < EXAM_SIZE; i++) picked.push(pool[Math.floor(i * step)]!);
-  return picked;
+  for (let i = 0; i < faltam; i++) picked.push(pool[Math.floor(i * step)]!);
+  return [...escolhidas, ...picked];
 }
 
 const projects: Record<string, FinalProject> = {
