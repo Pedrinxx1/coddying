@@ -855,7 +855,7 @@ function LessonPage() {
         </div>
 
         {guided && (
-          <section className="mt-6 border-y border-border py-5">
+          <section className="mt-5 border-y border-border py-5">
             <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-2 text-cyan">
                 <BookOpen className="h-5 w-5" />
@@ -875,7 +875,7 @@ function LessonPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                 <div className="mt-5 grid gap-2 sm:grid-cols-3" aria-label="Laboratório visual do conceito">
                   {guided.mentalModel.map((item, index) => (
                     <div key={item.label} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-lg border border-border p-3">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-bold text-cyan">{index + 1}</span>
@@ -892,9 +892,25 @@ function LessonPage() {
           </section>
         )}
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(20rem,0.92fr)] lg:gap-10">
+        {guided && (
+          <nav className="nao-imprimir mt-5 overflow-x-auto" aria-label="Etapas da explicação">
+            <ol className="flex min-w-max items-center gap-2">
+              {guided.steps.map((step, index) => (
+                <li key={step.title} className="flex items-center gap-2">
+                  <Button variant={activeStep === index ? "default" : "outline"} onClick={() => { setActiveStep(index); irPara("aula-explicacao"); }} aria-current={activeStep === index ? "step" : undefined} className="min-h-11">
+                    {guidedAnswers[index] !== undefined ? <CheckCircle2 /> : <span>{index + 1}</span>}
+                    <span>{step.eyebrow}</span>
+                  </Button>
+                  {index < guided.steps.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(22rem,0.82fr)_minmax(32rem,1.18fr)] lg:gap-0 lg:overflow-hidden lg:rounded-md lg:border lg:border-border">
           <article
-            className={`min-w-0 space-y-8 leitura ${contraste ? "leitura-contraste" : ""} ${quebra ? "leitura-quebra" : ""}`}
+            className={`min-w-0 space-y-8 leitura lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:border-r lg:border-border lg:bg-background lg:p-6 ${contraste ? "leitura-contraste" : ""} ${quebra ? "leitura-quebra" : ""}`}
             style={{ ["--leitura-escala" as string]: escala }}
           >
             {guided ? (
@@ -905,7 +921,7 @@ function LessonPage() {
                   const exemplo = Boolean(step.code) && guided.steps.findIndex((s) => s.code) === index;
                   return (
 
-                    <section key={step.title} {...(exemplo ? { id: "aula-exemplo" } : {})} className="scroll-mt-24 overflow-hidden rounded-xl border border-border bg-surface px-5 py-6 sm:px-7 sm:py-8">
+                    <section key={step.title} {...(exemplo ? { id: "aula-exemplo" } : {})} hidden={activeStep !== index} className="scroll-mt-24 overflow-hidden rounded-md border border-border bg-surface px-5 py-6 sm:px-7 sm:py-8">
                       <div className="flex items-center gap-3">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan/50 text-xs font-bold text-cyan">{index + 1}</span>
                         <p className="text-xs font-bold uppercase text-cyan">{step.eyebrow}</p>
@@ -953,6 +969,11 @@ function LessonPage() {
                           {answered && <p className={`mt-3 text-sm leading-6 ${selected === step.check.answer ? "text-success" : "text-warn"}`}>{selected === step.check.answer ? "Correto. " : "Ainda não. "}{step.check.explanation}</p>}
                         </div>
                       )}
+                      <div className="nao-imprimir mt-6 flex items-center justify-between gap-3 border-t border-border pt-4">
+                        <Button variant="outline" disabled={index === 0} onClick={() => setActiveStep(Math.max(0, index - 1))}><ArrowLeft /> Etapa anterior</Button>
+                        <span className="text-xs font-semibold text-muted-foreground">{index + 1} de {guided.steps.length}</span>
+                        <Button disabled={index === guided.steps.length - 1} onClick={() => setActiveStep(Math.min(guided.steps.length - 1, index + 1))}>Próxima etapa <ArrowRight /></Button>
+                      </div>
                     </section>
                   );
                 })}
@@ -1165,13 +1186,14 @@ function LessonPage() {
             )}
           </article>
 
-          <div id="aula-pratica" className="min-w-0 scroll-mt-24 space-y-6 lg:sticky lg:top-24 lg:self-start">
-            <div className="card-soft overflow-hidden p-0">
+          <div id="aula-pratica" className="min-w-0 scroll-mt-24 space-y-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:bg-surface lg:p-5">
+            <div className="overflow-hidden rounded-md border border-border bg-background">
               <div className="border-b border-border px-5 py-4">
-                <h2 className="font-display text-base font-bold sm:text-lg">{activeChallenge?.title ?? "Exercício"}</h2>
+                <div className="flex items-center justify-between gap-3"><p className="text-xs font-bold uppercase text-primary">Laboratório</p><span className="text-xs text-muted-foreground">{challengeIndex + 1}/{guided?.challenges.length ?? 1}</span></div>
+                <h2 className="mt-2 font-display text-base font-bold sm:text-lg">{activeChallenge?.title ?? "Exercício"}</h2>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">{activeChallenge?.instruction ?? ex.prompt}</p>
                 {guided && (
-                  <div className="mt-4 grid grid-cols-4 gap-2" aria-label="Desafios da aula">
+                    <div className="mt-4 grid grid-cols-4 gap-2" aria-label="Desafios da aula">
                     {guided.challenges.map((challenge, index) => (
                       <Button key={challenge.title} size="sm" variant={challengeIndex === index ? "default" : "outline"} onClick={() => { setChallengeIndex(index); setCode(challenge.starter); setStatus(completedChallenges.has(index) ? "ok" : "idle"); setOutput(null); setHintLevel(0); }} className="min-w-0 px-2">{completedChallenges.has(index) ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</Button>
                     ))}
@@ -1279,7 +1301,7 @@ function LessonPage() {
               )}
             </div>
 
-            <div className="card-soft overflow-hidden p-0">
+            <div className="overflow-hidden rounded-md border border-border bg-background">
               <div className="flex items-center gap-2 border-b border-border px-5 py-4">
                 <Bot className="h-4 w-4 shrink-0 text-cyan" />
                 <h2 className="font-display text-base font-bold sm:text-lg">Tire sua dúvida</h2>
